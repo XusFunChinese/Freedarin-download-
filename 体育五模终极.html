@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sports Mastery Flashcards v3</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #10b981;
+            --bg: #f8fafc;
+            --card-front: #ffffff;
+            --card-back: #f1f5ff;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            color: #1e293b;
+        }
+
+        nav {
+            width: 100%;
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .btn {
+            padding: 8px 14px;
+            border: 1.5px solid #e2e8f0;
+            background: white;
+            color: #64748b;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+        }
+
+        .mode-desc {
+            text-align: center;
+            color: #64748b;
+            margin: 15px 0 25px;
+            font-size: 0.9rem;
+            height: 20px;
+        }
+
+        /* --- Flashcard Styles --- */
+        .card-area {
+            perspective: 1000px;
+            width: 320px;
+            height: 420px;
+            position: relative;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .flashcard.flipped { transform: rotateY(180deg); }
+
+        .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+            box-sizing: border-box;
+        }
+
+        .face-front { background: var(--card-front); }
+        .face-back { background: var(--card-back); transform: rotateY(180deg); }
+
+        .emoji { font-size: 5rem; margin-bottom: 15px; }
+        .zh { font-size: 2.8rem; font-weight: 800; color: #0f172a; }
+        .py { font-size: 1.3rem; color: #64748b; margin-top: 8px; }
+        .en { font-size: 2rem; font-weight: 700; color: var(--primary); text-align: center; }
+
+        /* --- Quiz Styles --- */
+        .quiz-panel {
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            text-align: center;
+            display: none;
+            box-sizing: border-box;
+        }
+        .quiz-panel.active { display: block; animation: fadeIn 0.3s; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .opt-btn {
+            padding: 15px;
+            border: 2px solid #f1f5f9;
+            border-radius: 12px;
+            background: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .opt-btn:hover { border-color: var(--primary); background: #f8fafc; }
+
+        .input-box {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            text-align: center;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        .feedback { margin-top: 15px; font-weight: bold; height: 24px; }
+        
+        .progress-bar {
+            margin-top: 30px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .tap-hint {
+            margin-top: 15px;
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+<nav id="main-nav"></nav>
+
+<div class="container">
+    <div id="mode-desc" class="mode-desc"></div>
+
+    <div id="card-view" style="display:none; flex-direction:column; align-items:center;">
+        <div class="card-area" onclick="handleCardClick()">
+            <div id="card" class="flashcard">
+                <div id="card-front" class="face face-front"></div>
+                <div id="card-back" class="face face-back"></div>
+            </div>
+        </div>
+        <div id="hint-text" class="tap-hint">Tap to flip</div>
+    </div>
+
+    <div id="choice-view" class="quiz-panel">
+        <div id="choice-q" style="font-size: 1.4rem; font-weight: bold; margin-bottom: 20px;"></div>
+        <div id="choice-options" class="options-grid"></div>
+        <div id="choice-feedback" class="feedback"></div>
+    </div>
+
+    <div id="spell-view" class="quiz-panel">
+        <div id="spell-emoji" style="font-size: 4rem; margin-bottom: 10px;"></div>
+        <div id="spell-q" style="font-size: 1.3rem; margin-bottom: 20px;"></div>
+        <input type="text" id="spell-input" class="input-box" placeholder="Type Chinese or Pinyin (tones optional)..." autocomplete="off">
+        <div id="spell-feedback" class="feedback"></div>
+    </div>
+
+    <div id="counter" class="progress-bar"></div>
+</div>
+
+<script>
+    const sportsData = [
+        { zh: "足球", py: "zúqiú", en: "Soccer", icon: "⚽" },
+        { zh: "篮球", py: "lánqiú", en: "Basketball", icon: "🏀" },
+        { zh: "排球", py: "páiqiú", en: "Volleyball", icon: "🏐" },
+        { zh: "网球", py: "wǎngqiú", en: "Tennis", icon: "🎾" },
+        { zh: "乒乓球", py: "pīngpāngqiú", en: "Table Tennis", icon: "🏓" },
+        { zh: "羽毛球", py: "yǔmáoqiú", en: "Badminton", icon: "🏸" },
+        { zh: "匹克球", py: "pǐkèqiú", en: "Pickleball", icon: "🥒" },
+        { zh: "棒球", py: "bàngqiú", en: "Baseball", icon: "⚾" },
+        { zh: "垒球", py: "lěiqiú", en: "Softball", icon: "🥎" },
+        { zh: "高尔夫球", py: "gāo'ěrfūqiú", en: "Golf", icon: "⛳" },
+        { zh: "保龄球", py: "bǎolíngqiú", en: "Bowling", icon: "🎳" },
+        { zh: "台球", py: "táiqiú", en: "Billiards", icon: "🎱" },
+        { zh: "美式橄榄球", py: "měishì gǎnlǎnqiú", en: "American Football", icon: "🏈" },
+        { zh: "英式橄榄球", py: "yīngshì gǎnlǎnqiú", en: "Rugby", icon: "🏉" },
+        { zh: "冰球", py: "bīngqiú", en: "Ice Hockey", icon: "🏒" },
+        { zh: "曲棍球", py: "qūgùnqiú", en: "Hockey", icon: "🏑" },
+        { zh: "板球", py: "bǎnqiú", en: "Cricket", icon: "🏏" },
+        { zh: "跑步", py: "pǎobù", en: "Running", icon: "🏃" },
+        { zh: "田径", py: "tiánjìng", en: "Track and Field", icon: "👟" },
+        { zh: "游泳", py: "yóuyǒng", en: "Swimming", icon: "🏊" },
+        { zh: "跳水", py: "tiàoshuǐ", en: "Diving", icon: "💦" },
+        { zh: "冲浪", py: "chōnglàng", en: "Surfing", icon: "🏄" },
+        { zh: "赛艇", py: "sàitǐng", en: "Rowing", icon: "🚣" },
+        { zh: "帆船", py: "fānchuán", en: "Sailing", icon: "⛵" },
+        { zh: "拳击", py: "quánjī", en: "Boxing", icon: "🥊" },
+        { zh: "击剑", py: "jījiàn", en: "Fencing", icon: "🤺" },
+        { zh: "举重", py: "jǔzhòng", en: "Weightlifting", icon: "🏋️" },
+        { zh: "体操", py: "tǐcāo", en: "Gymnastics", icon: "🤸" },
+        { zh: "摔跤", py: "shuāijiāo", en: "Wrestling", icon: "🤼" },
+        { zh: "跆拳道", py: "táiquándào", en: "Martial Arts", icon: "🥋" },
+        { zh: "瑜伽", py: "yújiā", en: "Yoga", icon: "🧘" },
+        { zh: "爬山", py: "páshān", en: "Hiking", icon: "⛰️" },
+        { zh: "滑冰", py: "huábīng", en: "Skating", icon: "⛸️" },
+        { zh: "滑雪", py: "huáxuě", en: "Skiing", icon: "🎿" },
+        { zh: "单板滑雪", py: "dānbǎn huáxuě", en: "Snowboarding", icon: "🏂" },
+        { zh: "自行车", py: "zìxíngchē", en: "Cycling", icon: "🚴" },
+        { zh: "射箭", py: "shèjiàn", en: "Archery", icon: "🏹" },
+        { zh: "太极拳", py: "tàijíquán", en: "Tai Chi", icon: "☯️" },
+        { zh: "赛龙舟", py: "sài lóngzhōu", en: "Dragon Boat Racing", icon: "🐉" },
+        { zh: "舞狮", py: "wǔshī", en: "Lion Dance", icon: "🦁" },
+        { zh: "踢毽子", py: "tī jiànzi", en: "Shuttlecock", icon: "🏸" },
+        { zh: "抖空竹", py: "dǒu kōngzhú", en: "Diabolo", icon: "🪀" },
+        { zh: "拔河", py: "báhé", en: "Tug of War", icon: "🧶" }
+    ];
+
+    const modes = [
+        { id: 'learn', name: 'Learning', desc: 'Front: Chinese/Pinyin. Back: English/Emoji.' },
+        { id: 'revA', name: 'Review: English First', desc: 'Front: English word. Back: Chinese translation.' },
+        { id: 'revB', name: 'Review: Chinese First', desc: 'Front: Chinese character. Back: Full details.' },
+        { id: 'choice', name: 'Quiz: Choices', desc: 'Multiple choice: Find the correct English translation.' },
+        { id: 'spell', name: 'Quiz: Spelling', desc: 'Challenge: Type the Chinese name or pinyin correctly.' }
+    ];
+
+    let currentMode = 'learn';
+    let currentIndex = 0;
+    let isFlipped = false;
+    let isTransitioning = false;
+
+    // Helper: Normalize pinyin (remove tones and spaces)
+    function normalizePinyin(str) {
+        return str.normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "") // Remove tone marks
+                  .toLowerCase()
+                  .replace(/\s/g, "") // Remove spaces
+                  .replace(/'/g, ""); // Remove separators like in gāo'ěrfū
+    }
+
+    // Initialize Navigation
+    const nav = document.getElementById('main-nav');
+    modes.forEach(m => {
+        const b = document.createElement('button');
+        b.className = 'btn';
+        b.innerText = m.name;
+        b.onclick = () => setMode(m.id);
+        b.id = 'btn-' + m.id;
+        nav.appendChild(b);
+    });
+
+    function setMode(modeId) {
+        currentMode = modeId;
+        currentIndex = 0;
+        isFlipped = false;
+        isTransitioning = false;
+        
+        document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + modeId).classList.add('active');
+        document.getElementById('mode-desc').innerText = modes.find(m => m.id === modeId).desc;
+
+        document.getElementById('card-view').style.display = 'none';
+        document.getElementById('choice-view').classList.remove('active');
+        document.getElementById('spell-view').classList.remove('active');
+        document.getElementById('card').classList.remove('flipped');
+
+        if(['learn', 'revA', 'revB'].includes(modeId)) {
+            document.getElementById('card-view').style.display = 'flex';
+            updateFlashcardContent();
+        } else if(modeId === 'choice') {
+            document.getElementById('choice-view').classList.add('active');
+            initChoiceQuiz();
+        } else if(modeId === 'spell') {
+            document.getElementById('spell-view').classList.add('active');
+            initSpellQuiz();
+        }
+    }
+
+    function updateFlashcardContent() {
+        const item = sportsData[currentIndex];
+        const front = document.getElementById('card-front');
+        const back = document.getElementById('card-back');
+        
+        document.getElementById('counter').innerText = `Progress: ${currentIndex + 1} / ${sportsData.length}`;
+        document.getElementById('hint-text').innerText = "Tap to flip";
+
+        if (currentMode === 'learn') {
+            front.innerHTML = `<span class="zh">${item.zh}</span><span class="py">${item.py}</span>`;
+            back.innerHTML = `<span class="emoji">${item.icon}</span><span class="en">${item.en}</span>`;
+        } else if (currentMode === 'revA') {
+            front.innerHTML = `<span class="en">${item.en}</span>`;
+            back.innerHTML = `<span class="emoji">${item.icon}</span><span class="zh">${item.zh}</span><span class="py">${item.py}</span>`;
+        } else if (currentMode === 'revB') {
+            front.innerHTML = `<span class="zh">${item.zh}</span>`;
+            back.innerHTML = `<span class="emoji">${item.icon}</span><span class="en">${item.en}</span><span class="py">${item.py}</span>`;
+        }
+    }
+
+    function handleCardClick() {
+        if (isTransitioning) return;
+        const card = document.getElementById('card');
+        
+        if (!isFlipped) {
+            card.classList.add('flipped');
+            isFlipped = true;
+            document.getElementById('hint-text').innerText = "Tap for next card";
+        } else {
+            isTransitioning = true;
+            card.classList.remove('flipped');
+            setTimeout(() => {
+                currentIndex = (currentIndex + 1) % sportsData.length;
+                updateFlashcardContent();
+                isFlipped = false;
+                isTransitioning = false;
+            }, 250);
+        }
+    }
+
+    function initChoiceQuiz() {
+        const item = sportsData[currentIndex];
+        document.getElementById('choice-feedback').innerText = '';
+        document.getElementById('choice-q').innerText = `Which is the English for "${item.zh}"?`;
+        document.getElementById('counter').innerText = `Progress: ${currentIndex + 1} / ${sportsData.length}`;
+
+        let opts = [item.en];
+        while(opts.length < 4) {
+            let r = sportsData[Math.floor(Math.random()*sportsData.length)].en;
+            if(!opts.includes(r)) opts.push(r);
+        }
+        opts.sort(() => Math.random() - 0.5);
+
+        document.getElementById('choice-options').innerHTML = opts.map(o => 
+            `<button class="opt-btn" onclick="checkChoice('${o}')">${o}</button>`
+        ).join('');
+    }
+
+    function checkChoice(ans) {
+        if (isTransitioning) return;
+        const correct = sportsData[currentIndex].en;
+        const fb = document.getElementById('choice-feedback');
+        
+        if(ans === correct) {
+            isTransitioning = true;
+            fb.innerText = "✅ Correct!";
+            fb.style.color = "var(--secondary)";
+            setTimeout(() => {
+                currentIndex = (currentIndex + 1) % sportsData.length;
+                initChoiceQuiz();
+                isTransitioning = false;
+            }, 800);
+        } else {
+            fb.innerText = "❌ Try again";
+            fb.style.color = "#ef4444";
+        }
+    }
+
+    function initSpellQuiz() {
+        const item = sportsData[currentIndex];
+        document.getElementById('spell-feedback').innerText = '';
+        document.getElementById('spell-input').value = '';
+        document.getElementById('spell-emoji').innerText = item.icon;
+        document.getElementById('spell-q').innerText = `"${item.en}" in Chinese/Pinyin?`;
+        document.getElementById('counter').innerText = `Progress: ${currentIndex + 1} / ${sportsData.length}`;
+        document.getElementById('spell-input').focus();
+    }
+
+    document.getElementById('spell-input').onkeydown = (e) => {
+        if(e.key === 'Enter') {
+            if (isTransitioning) return;
+            const inputVal = e.target.value.trim().toLowerCase().replace(/\s/g, "");
+            const item = sportsData[currentIndex];
+            const fb = document.getElementById('spell-feedback');
+            
+            const normalizedCorrectPinyin = normalizePinyin(item.py);
+            
+            // Success if input matches Chinese characters OR normalized pinyin
+            if(inputVal === item.zh || inputVal === normalizedCorrectPinyin) {
+                isTransitioning = true;
+                fb.innerText = "✅ Correct!";
+                fb.style.color = "var(--secondary)";
+                setTimeout(() => {
+                    currentIndex = (currentIndex + 1) % sportsData.length;
+                    initSpellQuiz();
+                    isTransitioning = false;
+                }, 800);
+            } else {
+                fb.innerText = `Hint: starts with ${item.zh[0]}`;
+                fb.style.color = "#f59e0b";
+            }
+        }
+    };
+
+    setMode('learn');
+</script>
+
+</body>
+</html>
