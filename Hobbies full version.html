@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>38 Hobbies - Ruby Edition</title>
+    <style>
+        :root {
+            --primary-blue: #2980b9;
+            --dark-gray: #2c3e50;
+            --accent-orange: #f39c12;
+            --bg-light: #ffffff;
+            --text-black: #1a1a1a;
+            --correct-green: #2ecc71;
+            --wrong-red: #e74c3c;
+            --pinyin-gray: #999;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif, 'Microsoft YaHei';
+            background-color: var(--bg-light);
+            margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #app {
+            width: 100vw; height: 100vh; max-width: 600px; background: white; 
+            padding: 1rem; box-sizing: border-box; display: flex; flex-direction: column;
+        }
+
+        .nav-grid { 
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; 
+            margin-bottom: 10px; flex-shrink: 0; z-index: 100;
+        }
+        .nav-grid button { 
+            font-size: 0.75rem; padding: 10px 2px; background: #f5f5f5; 
+            border-radius: 8px; border: none; color: #666; cursor: pointer; font-weight: bold; 
+        }
+        .nav-grid button.active { background: var(--dark-gray); color: white; }
+
+        .card-scene { flex-grow: 1; perspective: 1000px; position: relative; }
+        .card { width: 100%; height: 100%; position: relative; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s; transform-style: preserve-3d; cursor: pointer; }
+        .card.is-flipped { transform: rotateY(180deg); }
+        .card.is-switching { opacity: 0; }
+        
+        .card-face { 
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden; 
+            display: flex; flex-direction: column; align-items: center; 
+            background: white; text-align: center;
+            padding: 18vh 20px 20px 20px;
+            box-sizing: border-box;
+        }
+        
+        .card-back { transform: rotateY(180deg); background: #fafafa; border-radius: 24px; padding-top: 10vh; }
+
+        .emoji-huge { font-size: 7.5rem; margin-bottom: 10px; }
+        .word-huge { font-size: 6rem; font-weight: 900; color: var(--text-black); line-height: 1; }
+        .word-en-huge { font-size: 4rem; font-weight: 800; color: var(--primary-blue); line-height: 1.1; margin-top: 5vh; }
+        
+        /* 核心对齐样式 */
+        .word-ruby { font-size: 4rem; font-weight: 900; color: var(--text-black); margin: 0; line-height: 1.2;}
+        .ex-ruby { font-size: 1.6rem; font-weight: bold; color: var(--text-black); line-height: 2.2; margin-bottom: 15px; }
+        rt { font-size: 0.9rem; color: var(--pinyin-gray); font-weight: normal; transform: translateY(-2px); }
+        
+        .back-eng-title { font-size: 2.2rem; font-weight: bold; color: var(--accent-orange); margin: 10px 0 30px 0; }
+        .ex-container { width: 100%; padding-top: 25px; border-top: 1px solid #eee; margin-top: auto; padding-bottom: 5vh;}
+        .ex-en { font-size: 1.2rem; color: #777; font-style: italic; line-height: 1.2; padding: 0 10px; }
+
+        #progress-tag { position: absolute; top: -5px; left: 0; font-size: 0.85rem; color: #eee; font-weight: bold; }
+
+        .opt-btn { display: block; width: 100%; padding: 18px; margin: 10px 0; border: 1px solid #eee; background: white; border-radius: 12px; font-size: 1.3rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .opt-btn.correct { background-color: var(--correct-green) !important; color: white; border-color: var(--correct-green); }
+        .opt-btn.wrong { background-color: var(--wrong-red) !important; color: white; border-color: var(--wrong-red); animation: shake 0.4s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+        #summary-container { flex-grow: 1; overflow-y: auto; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 18px; border-bottom: 1px solid #f9f9f9; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="nav-grid" id="nav-btns">
+        <button onclick="startMode('learn')">LEARN</button>
+        <button onclick="startMode('card-cn')">CARD(CN)</button>
+        <button onclick="startMode('card-en')">CARD(EN)</button>
+        <button onclick="startMode('quiz')">QUIZ</button>
+        <button onclick="startMode('timed')">RUSH</button>
+        <button onclick="startMode('summary')">LIST</button>
+    </div>
+
+    <div id="card-container" class="mode-view">
+        <div id="progress-tag">01/38</div>
+        <div class="card-scene">
+            <div class="card" id="display-card" onclick="handleCardClick()">
+                <div class="card-face card-front" id="card-f"></div>
+                <div class="card-face card-back" id="card-b"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="summary-container" class="mode-view hidden"><div id="summary-list"></div></div>
+
+    <div id="quiz-container" class="mode-view hidden" style="flex-grow:1; padding:20px; text-align:center;">
+        <div style="display:flex; justify-content:space-between; font-weight:bold; color:#ddd; margin-bottom:10px;">
+            <span id="quiz-score-tag">SCORE: 0</span>
+            <span id="quiz-timer-tag"></span>
+        </div>
+        <div id="quiz-q" style="font-size:2.8rem; font-weight:bold; margin: 30px 0; color:var(--primary-blue);"></div>
+        <div id="quiz-opts"></div>
+    </div>
+</div>
+
+<script>
+    const hobbies = [
+        { word: "刷剧", pinyin: "shuā jù", eng: "Binge-watching", emoji: "📺", exZh: "我整个周末都在家里刷剧。", exPy: "wǒ zhěng gè zhōu mò dōu zài jiā lǐ shuā jù", exEn: "I spent the whole weekend binge-watching." },
+        { word: "摄影", pinyin: "shè yǐng", eng: "Photography", emoji: "📷", exZh: "他非常喜欢去公园摄影。", exPy: "tā fēi cháng xǐ huān qù gōng yuán shè yǐng", exEn: "He really likes going to the park for photography." },
+        { word: "烹饪", pinyin: "pēng rèn", eng: "Cooking", emoji: "🍳", exZh: "烹饪是一种很好的放松方式。", exPy: "pēng rèn shì yì zhǒng hěn hǎo de fàng sōng fāng shì", exEn: "Cooking is a great way to relax." },
+        { word: "园艺", pinyin: "yuán yì", eng: "Gardening", emoji: "🪴", exZh: "奶奶在阳台上练习园艺。", exPy: "nǎi nai zài yáng tái shàng liàn xí yuán yì", exEn: "Grandma is practicing gardening on the balcony." },
+        { word: "阅读", pinyin: "yuè dú", eng: "Reading", emoji: "📖", exZh: "阅读能开阔我们的视野。", exPy: "yuè dú néng kāi kuò wǒ men de shì yě", exEn: "Reading can broaden our horizons." },
+        { word: "绘画", pinyin: "huì huà", eng: "Painting", emoji: "🎨", exZh: "她正在给窗外的风景绘画。", exPy: "tā zhèng zài gěi chuāng wài de fēng jǐng huì huà", exEn: "She is painting the scenery outside the window." },
+        { word: "冥想", pinyin: "míng xiǎng", eng: "Meditation", emoji: "🧘", exZh: "每天冥想十分钟很有好处。", exPy: "měi tiān míng xiǎng shí fēn zhōng hěn yǒu hǎo chù", exEn: "Meditating for ten minutes every day is beneficial." },
+        { word: "手工", pinyin: "shǒu gōng", eng: "Crafting", emoji: "🧶", exZh: "我喜欢在课余时间做手工。", exPy: "wǒ xǐ huān zài kè yú shí jiān zuò shǒu gōng", exEn: "I like to do crafting in my spare time." },
+        { word: "桌游", pinyin: "zhuō yóu", eng: "Board Gaming", emoji: "🎲", exZh: "我们经常聚在一起玩桌游。", exPy: "wǒ men jīng cháng jù zài yì qǐ wán zhuō yóu", exEn: "We often get together to play board games." },
+        { word: "手账", pinyin: "shǒu zhàng", eng: "Journaling", emoji: "📓", exZh: "做手账能帮我整理生活。", exPy: "zuò shǒu zhàng néng bāng wǒ zhěng lǐ shēng huó", exEn: "Journaling helps me organize my life." },
+        { word: "听播客", pinyin: "tīng bō kè", eng: "Listening to Podcasts", emoji: "🎧", exZh: "我喜欢在开车时听播客。", exPy: "wǒ xǐ huān zài kāi chē shí tīng bō kè", exEn: "I like listening to podcasts while driving." },
+        { word: "观星", pinyin: "guān xīng", eng: "Stargazing", emoji: "🔭", exZh: "郊外的夜晚非常适合观星。", exPy: "jiāo wài de yè wǎn fēi cháng shì hé guān xīng", exEn: "The night in the suburbs is perfect for stargazing." },
+        { word: "拼图", pinyin: "pīn tú", eng: "Jigsaw Puzzles", emoji: "🧩", exZh: "这个拼图花了我三天时间。", exPy: "zhè gè pīn tú huā le wǒ sān tiān shí jiān", exEn: "This puzzle took me three days to finish." },
+        { word: "烘焙", pinyin: "hōng bèi", eng: "Baking", emoji: "🧁", exZh: "屋子里充满了烘焙的香味。", exPy: "wū zi lǐ chōng mǎn le hōng bèi de xiāng wèi", exEn: "The house is full of the smell of baking." },
+        { word: "集邮", pinyin: "jí yóu", eng: "Stamp Collecting", emoji: "🏷️", exZh: "集邮是他多年的爱好。", exPy: "jí yóu shì tā duō nián de ài hào", exEn: "Stamp collecting is his hobby of many years." },
+        { word: "乐高", pinyin: "lè gāo", eng: "Building LEGO", emoji: "🧱", exZh: "拼乐高需要很大的耐心。", exPy: "pīn lè gāo xū yào hěn dà de nài xīn", exEn: "Building LEGO requires a lot of patience." },
+        { word: "钓鱼", pinyin: "diào yú", eng: "Fishing", emoji: "🎣", exZh: "爸爸打算周末去湖边钓鱼。", exPy: "bà ba dǎ suàn zhōu mò qù hú biān diào yú", exEn: "Dad plans to go fishing by the lake this weekend." },
+        { word: "观鸟", pinyin: "guān niǎo", eng: "Birdwatching", emoji: "🦜", exZh: "观鸟时一定要保持安静。", exPy: "guān niǎo shí yí dìng yào bǎo chí ān jìng", exEn: "You must keep quiet while birdwatching." },
+        { word: "撸猫", pinyin: "lū māo", eng: "Petting Cats", emoji: "🐱", exZh: "撸猫是缓解压力的好办法。", exPy: "lū māo shì huǎn jiě yā lì de hǎo bàn fǎ", exEn: "Petting cats is a good way to relieve stress." },
+        { word: "遛狗", pinyin: "liù gǒu", eng: "Walking the Dog", emoji: "🦮", exZh: "他每天早晚都会去遛狗。", exPy: "tā měi tiān zǎo wǎn dōu huì qù liù gǒu", exEn: "He goes walking the dog every morning and evening." },
+        { word: "看电影", pinyin: "kàn diànyǐng", eng: "Watching Movies", emoji: "🎬", exZh: "我最喜欢看科幻电影。", exPy: "wǒ zuì xǐ huān kàn kē huàn diàn yǐng", exEn: "I like watching sci-fi movies the most." },
+        { word: "逛展", pinyin: "guàng zhǎn", eng: "Visiting Exhibitions", emoji: "🖼️", exZh: "美术馆最近有很多好的展览。", exPy: "měi shù guǎn zuì jìn yǒu hěn duō hǎo de zhǎn lǎn", exEn: "There will be good exhibitions at the museum." },
+        { word: "露营", pinyin: "lù yíng", eng: "Camping", emoji: "⛺", exZh: "露营让我们感受大自然。", exPy: "lù yíng ràng wǒ men gǎn shòu dà zì rán", exEn: "Camping lets us feel nature." },
+        { word: "写代码", pinyin: "xiě dàimǎ", eng: "Coding", emoji: "💻", exZh: "写代码是一项很有挑战的工作。", exPy: "xiě dài mǎ shì yí xiàng hěn yǒu tiǎo zhàn de gōng zuò", exEn: "Coding is a very challenging job." },
+        { word: "发呆", pinyin: "fādāi", eng: "Spacing out", emoji: "😶", exZh: "偶尔发呆有助于思考。", exPy: "ǒu ěr fā dāi yǒu zhù yú sī kǎo", exEn: "Spacing out occasionally helps with thinking." },
+        { word: "唱K", pinyin: "chàng K", eng: "Karaoke", emoji: "🎤", exZh: "压力大的时候我想去唱K。", exPy: "yā lì dà de shí hou wǒ xiǎng qù chàng K", exEn: "I want to go to Karaoke when stressed." },
+        { word: "喝茶", pinyin: "hē chá", eng: "Tea Tasting", emoji: "🍵", exZh: "喝茶能让人静下心来。", exPy: "hē chá néng ràng rén jìng xià xīn lái", exEn: "Tea tasting can calm people down." },
+        { word: "喝咖啡", pinyin: "hē kāfēi", eng: "Coffee Culture", emoji: "☕", exZh: "很多人都有喝咖啡的习惯。", exPy: "hěn duō rén dōu yǒu hē kā fēi de xí guàn", exEn: "Many people have the habit of drinking coffee." },
+        { word: "收集手办", pinyin: "shōují shǒubàn", eng: "Collecting Figures", emoji: "🤖", exZh: "他收集手办已经五年了。", exPy: "tā shōu jí shǒu bàn yǐ jīng wǔ nián le", exEn: "He has been collecting figures for five years." },
+        { word: "插花", pinyin: "chāhuā", eng: "Flower Arranging", emoji: "💐", exZh: "插花能让房间变得更美。", exPy: "chā huā néng ràng fáng jiān biàn de gèng měi", exEn: "Flower arranging can make a room more beautiful." },
+        { word: "陶艺", pinyin: "táoyì", eng: "Pottery", emoji: "🏺", exZh: "这件作品是他亲手做的。", exPy: "zhè jiàn zuò pǐn shì tā qīn shǒu zuò de", exEn: "This piece was made by him personally." },
+        { word: "听音乐", pinyin: "tīng yīnyuè", eng: "Listening to Music", emoji: "🎵", exZh: "听音乐能舒缓紧张的情绪。", exPy: "tīng yīn yuè néng shū huǎn jǐn zhāng de qíng xù", exEn: "Listening to music can soothe tension." },
+        { word: "逛街", pinyin: "guàngjiē", eng: "Shopping", emoji: "🛍️", exZh: "周末逛街的人非常多。", exPy: "zhōu mò guàng jiē de rén fēi cháng duō", exEn: "There are so many people shopping on weekends." },
+        { word: "旅行", pinyin: "lǚxíng", eng: "Traveling", emoji: "✈️", exZh: "旅行让我认识了新朋友。", exPy: "lǚ xíng ràng wǒ rèn shi le xīn péng you", exEn: "Traveling let me meet new friends." },
+        { word: "观剧", pinyin: "guānjù", eng: "Theater Going", emoji: "🎭", exZh: "去剧院观剧是一种享受。", exPy: "qù jù yuàn guān jù shì yì zhǒng xiǎng shòu", exEn: "Theater going is a kind of enjoyment." },
+        { word: "折纸", pinyin: "zhézhǐ", eng: "Origami", emoji: "🦢", exZh: "他擅长用折纸做小动物。", exPy: "tā shàn cháng yòng zhé zhǐ zuò xiǎo dòng wù", exEn: "He is good at making animals with origami." },
+        { word: "写作", pinyin: "xiězuò", eng: "Writing", emoji: "✍️", exZh: "坚持写作是一个好习惯。", exPy: "jiān chí xiě zuò shì yí gè hǎo xí guàn", exEn: "Keeping on writing is a good habit." },
+        { word: "看球", pinyin: "kàn qiú", eng: "Watching Sports", emoji: "🏟️", exZh: "看球时大家都会大声欢呼。", exPy: "kàn qiú shí dà jiā dōu huì dà shēng huān hū", exEn: "Everyone cheers loudly when watching sports." }
+    ];
+
+    let currentIdx = 0, currentMode = 'learn', score = 0, rushTimer, timeLeft = 15;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playAudioFeedback(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+        if (type === 'correct') {
+            osc.frequency.setValueAtTime(523, now); osc.frequency.exponentialRampToValueAtTime(1046, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(); osc.stop(now + 0.3);
+        } else {
+            osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now + 0.2);
+            gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+            osc.start(); osc.stop(now + 0.2);
+        }
+    }
+
+    function speak(text) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = /[\u4e00-\u9fa5]/.test(text) ? 'zh-CN' : 'en-US';
+        window.speechSynthesis.speak(msg);
+    }
+
+    function generateRubySentence(zh, py) {
+        const chars = zh.split('');
+        const pinyins = py.split(' ');
+        let html = '';
+        chars.forEach((char, i) => {
+            // 如果是标点符号，不需要拼音
+            if (/[，。！？、]/.test(char)) {
+                html += char;
+            } else {
+                html += `<ruby>${char}<rt>${pinyins[i] || ''}</rt></ruby>`;
+            }
+        });
+        return html;
+    }
+
+    function startMode(m) {
+        currentMode = m; score = 0; clearInterval(rushTimer);
+        document.querySelectorAll('.mode-view').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.nav-grid button').forEach(b => b.classList.remove('active'));
+        if(event) event.target.classList.add('active');
+
+        if(m === 'summary') {
+            document.getElementById('summary-container').classList.remove('hidden');
+            renderSummary();
+        } else if(m === 'quiz' || m === 'timed') {
+            document.getElementById('quiz-container').classList.remove('hidden');
+            document.getElementById('quiz-score-tag').innerText = "SCORE: 0";
+            if(m === 'timed') {
+                timeLeft = 15;
+                rushTimer = setInterval(() => {
+                    timeLeft -= 0.1;
+                    document.getElementById('quiz-timer-tag').innerText = Math.ceil(timeLeft) + "s";
+                    if(timeLeft <= 0) { clearInterval(rushTimer); alert("TIME UP! Score: " + score); startMode('learn'); }
+                }, 100);
+            } else { document.getElementById('quiz-timer-tag').innerText = ""; }
+            nextQ();
+        } else {
+            document.getElementById('card-container').classList.remove('hidden');
+            renderDisplayCard(true);
+        }
+    }
+
+    function renderDisplayCard(immediate = false) {
+        const h = hobbies[currentIdx];
+        const card = document.getElementById('display-card');
+        if(immediate) { updateCardContent(h); return; }
+        card.classList.add('is-switching');
+        setTimeout(() => { updateCardContent(h); card.classList.remove('is-switching'); }, 200);
+    }
+
+    function updateCardContent(h) {
+        let frontHTML = '', speakText = h.word;
+        if(currentMode === 'learn') {
+            frontHTML = `<div class="emoji-huge">${h.emoji}</div><ruby class="word-ruby">${h.word}<rt>${h.pinyin}</rt></ruby>`;
+        } else if(currentMode === 'card-cn') {
+            frontHTML = `<div class="word-huge" style="margin-top:10vh">${h.word}</div>`;
+        } else if(currentMode === 'card-en') {
+            frontHTML = `<div class="word-en-huge">${h.eng}</div>`; speakText = h.eng;
+        }
+        
+        document.getElementById('card-f').innerHTML = frontHTML;
+        
+        // 生成例句 Ruby HTML
+        const rubySentence = generateRubySentence(h.exZh, h.exPy);
+
+        document.getElementById('card-b').innerHTML = `
+            <div class="emoji-huge" style="font-size:3.5rem; margin-bottom:0;">${h.emoji}</div>
+            <ruby class="word-ruby" style="font-size:3.5rem;">${h.word}<rt>${h.pinyin}</rt></ruby>
+            <div class="back-eng-title">${h.eng}</div>
+            <div class="ex-container">
+                <div class="ex-ruby">${rubySentence}</div>
+                <div class="ex-en">${h.exEn}</div>
+            </div>`;
+            
+        document.getElementById('progress-tag').innerText = (currentIdx + 1).toString().padStart(2, '0') + "/38";
+        speak(speakText);
+    }
+
+    function handleCardClick() {
+        const card = document.getElementById('display-card');
+        if(!card.classList.contains('is-flipped')) {
+            card.classList.add('is-flipped'); speak(hobbies[currentIdx].exZh);
+        } else {
+            card.classList.remove('is-flipped'); currentIdx = (currentIdx + 1) % hobbies.length;
+            setTimeout(() => { renderDisplayCard(); }, 300); 
+        }
+    }
+
+    function renderSummary() {
+        document.getElementById('summary-list').innerHTML = hobbies.map(h => `
+            <div class="list-item" onclick="speak('${h.word}')">
+                <div style="text-align:left"><span style="font-size:1.6rem; font-weight:bold;">${h.emoji} ${h.word}</span></div>
+                <div style="color:var(--primary-blue); font-size:1.1rem; font-weight:600;">${h.eng}</div>
+            </div>`).join('');
+    }
+
+    function nextQ() {
+        const h = hobbies[Math.floor(Math.random() * hobbies.length)];
+        const isCN = Math.random() > 0.5;
+        document.getElementById('quiz-q').innerText = isCN ? h.word : h.eng;
+        const correct = isCN ? h.eng : h.word;
+        let opts = [correct];
+        while(opts.length < 4) {
+            let f = hobbies[Math.floor(Math.random() * hobbies.length)][isCN ? 'eng' : 'word'];
+            if(!opts.includes(f)) opts.push(f);
+        }
+        opts.sort(() => Math.random() - 0.5);
+        document.getElementById('quiz-opts').innerHTML = opts.map(o => `
+            <button class="opt-btn" onclick="checkQuizAnswer(this, '${o}', '${correct}')">${o}</button>`).join('');
+    }
+
+    function checkQuizAnswer(btn, selected, correct) {
+        const allBtns = document.querySelectorAll('.opt-btn');
+        allBtns.forEach(b => b.disabled = true);
+        if(selected === correct) {
+            playAudioFeedback('correct'); btn.classList.add('correct');
+            score += 10; speak(correct); setTimeout(nextQ, 800);
+        } else {
+            playAudioFeedback('wrong'); btn.classList.add('wrong');
+            allBtns.forEach(b => { if(b.innerText === correct) b.classList.add('correct'); });
+            score = Math.max(0, score - 5); if(currentMode === 'timed') timeLeft -= 1.5;
+            setTimeout(nextQ, 1200);
+        }
+        document.getElementById('quiz-score-tag').innerText = "SCORE: " + score;
+    }
+
+    document.querySelector('.nav-grid button').click();
+</script>
+</body>
+</html>
