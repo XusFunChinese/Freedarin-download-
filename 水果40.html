@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>40 Fruits - XusFunChinese Edition</title>
+    <style>
+        :root {
+            --primary-blue: #2980b9;
+            --dark-gray: #2c3e50;
+            --accent-orange: #f39c12;
+            --bg-light: #f0f2f5;
+            --text-black: #1a1a1a;
+            --correct-green: #2ecc71;
+            --wrong-red: #e74c3c;
+            --pinyin-color: #ff4500; 
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif, 'Microsoft YaHei';
+            background-color: var(--bg-light);
+            margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #app {
+            width: 95vw; height: 95vh; max-width: 900px; background: white; 
+            padding: 1rem; box-sizing: border-box; display: flex; flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); border-radius: 20px; position: relative;
+        }
+
+        .nav-grid { 
+            display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; 
+            margin-bottom: 15px; flex-shrink: 0;
+        }
+        .nav-grid button { 
+            font-size: 0.8rem; padding: 12px 2px; background: #f5f5f5; 
+            border-radius: 10px; border: none; color: #666; cursor: pointer; font-weight: bold; 
+        }
+        .nav-grid button.active { background: var(--dark-gray); color: white; }
+
+        .card-scene { 
+            flex-grow: 1; perspective: 1200px; position: relative; 
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* 水印：放在词卡场景内，确保层级最高 */
+        .watermark {
+            position: absolute; bottom: 15px; right: 35px;
+            font-size: 1.1rem; font-weight: 800; 
+            color: rgba(44, 62, 80, 0.25); /* 深色半透明，清晰可见 */
+            pointer-events: none; z-index: 100; font-family: 'Arial Black', sans-serif;
+            text-transform: uppercase;
+        }
+
+        .card { 
+            width: 90%; aspect-ratio: 16 / 9; position: relative; 
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s; 
+            transform-style: preserve-3d; cursor: pointer; 
+        }
+        .card.is-flipped { transform: rotateY(180deg); }
+        .card.is-switching { opacity: 0; }
+        
+        .card-face { 
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: white; border-radius: 20px; border: 1px solid #eee;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); padding: 20px; box-sizing: border-box;
+        }
+        
+        .card-back { transform: rotateY(180deg); background: #ffffff; }
+
+        .emoji-huge { font-size: 7rem; margin: 0; }
+        .word-ruby { font-size: 4rem; font-weight: 900; color: var(--text-black); line-height: 1.4; }
+        rt { font-size: 1.2rem; color: var(--pinyin-color); font-weight: bold; }
+        
+        .word-en-huge { font-size: 4.5rem; font-weight: 800; color: var(--primary-blue); }
+        .back-eng-title { font-size: 2.2rem; font-weight: bold; color: var(--accent-orange); margin: 5px 0; }
+        
+        /* 例句拼音对齐样式 */
+        .ex-container { width: 100%; padding-top: 15px; border-top: 2px dashed #f0f0f0; margin-top: 15px; text-align: center; }
+        .ex-ruby { font-size: 1.8rem; font-weight: bold; color: #333; line-height: 2.2; }
+        .ex-ruby rt { font-size: 0.9rem; color: #888; font-weight: normal; }
+        .ex-en { font-size: 1.1rem; color: #666; font-style: italic; margin-top: 5px; }
+
+        #progress-tag { position: absolute; top: 10px; left: 20px; font-size: 1rem; color: #ddd; font-weight: bold; }
+
+        .quiz-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 700px; margin-top: 20px; }
+        .opt-btn { padding: 20px; border: 2px solid #eee; background: white; border-radius: 15px; font-size: 1.5rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .opt-btn.correct { background-color: var(--correct-green) !important; color: white; border-color: var(--correct-green); }
+        .opt-btn.wrong { background-color: var(--wrong-red) !important; color: white; border-color: var(--wrong-red); animation: shake 0.4s; }
+        
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+
+        #summary-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f9f9f9; border-radius: 12px; cursor: pointer; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="nav-grid" id="nav-btns">
+        <button onclick="startMode('learn')" class="active">学习模式</button>
+        <button onclick="startMode('card-cn')">看字识意</button>
+        <button onclick="startMode('card-en')">看音辩词</button>
+        <button onclick="startMode('quiz')">趣味测试</button>
+        <button onclick="startMode('timed')">极速挑战</button>
+        <button onclick="startMode('summary')">单词列表</button>
+    </div>
+
+    <div id="card-container" class="mode-view">
+        <div class="card-scene">
+            <div id="progress-tag">01/40</div>
+            
+            <div class="watermark">XusFunChinese</div>
+
+            <div class="card" id="display-card" onclick="handleCardClick()">
+                <div class="card-face card-front" id="card-f"></div>
+                <div class="card-face card-back" id="card-b"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="summary-container" class="mode-view hidden" style="flex-grow:1; overflow-y:auto;">
+        <div id="summary-list"></div>
+    </div>
+
+    <div id="quiz-container" class="mode-view hidden" style="flex-grow:1; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative;">
+        <div class="watermark">XusFunChinese</div>
+        <div style="width:100%; display:flex; justify-content:space-between; font-weight:bold; color:#aaa; padding: 0 20px;">
+            <span id="quiz-score-tag">SCORE: 0</span>
+            <span id="quiz-timer-tag" style="color:var(--accent-orange)"></span>
+        </div>
+        <div id="quiz-q" style="font-size:5rem; font-weight:bold; margin: 20px 0; color:var(--primary-blue);"></div>
+        <div id="quiz-opts" class="quiz-opts"></div>
+    </div>
+</div>
+
+<script>
+    const fruits = [
+        { word: "苹果", pinyin: "píng guǒ", eng: "Apple", emoji: "🍎", exZh: "我吃苹果", exPy: "wǒ chī píng guǒ", exEn: "I eat an apple." },
+        { word: "香蕉", pinyin: "xiāng jiāo", eng: "Banana", emoji: "🍌", exZh: "猴子拿香蕉", exPy: "hóu zi ná xiāng jiāo", exEn: "The monkey takes the banana." },
+        { word: "西瓜", pinyin: "xī guā", eng: "Watermelon", emoji: "🍉", exZh: "哥哥抱西瓜", exPy: "gē ge bào xī guā", exEn: "Brother holds the watermelon." },
+        { word: "草莓", pinyin: "cǎo méi", eng: "Strawberry", emoji: "🍓", exZh: "我喜欢草莓", exPy: "wǒ xǐ huan cǎo méi", exEn: "I like strawberries." },
+        { word: "葡萄", pinyin: "pú tao", eng: "Grape", emoji: "🍇", exZh: "奶奶洗葡萄", exPy: "nǎi nai xǐ pú tao", exEn: "Grandma washes grapes." },
+        { word: "橙子", pinyin: "chéng zi", eng: "Orange", emoji: "🍊", exZh: "妈妈切橙子", exPy: "mā ma qiē chéng zi", exEn: "Mom cuts the orange." },
+        { word: "梨子", pinyin: "lí zi", eng: "Pear", emoji: "🍐", exZh: "他买一个梨", exPy: "tā mǎi yí gè lí", exEn: "He buys a pear." },
+        { word: "柠檬", pinyin: "níng méng", eng: "Lemon", emoji: "🍋", exZh: "柠檬很酸哦", exPy: "níng méng hěn suān o", exEn: "The lemon is very sour." },
+        { word: "芒果", pinyin: "máng guǒ", eng: "Mango", emoji: "🥭", exZh: "姐姐吃芒果", exPy: "jiě jie chī máng guǒ", exEn: "Sister eats a mango." },
+        { word: "菠萝", pinyin: "bō luó", eng: "Pineapple", emoji: "🍍", exZh: "厨师削菠萝", exPy: "chú shī xiāo bō luó", exEn: "The chef peels the pineapple." },
+        { word: "樱桃", pinyin: "yīng táo", eng: "Cherry", emoji: "🍒", exZh: "他数着樱桃", exPy: "tā shǔ zhe yīng táo", exEn: "He counts the cherries." },
+        { word: "桃子", pinyin: "táo zi", eng: "Peach", emoji: "🍑", exZh: "这有个桃子", exPy: "zhè yǒu gè táo zi", exEn: "There is a peach." },
+        { word: "猕猴桃", pinyin: "mí hóu táo", eng: "Kiwi", emoji: "🥝", exZh: "鸟吃猕猴桃", exPy: "niǎo chī mí hóu táo", exEn: "Birds eat kiwi." },
+        { word: "蓝莓", pinyin: "lán méi", eng: "Blueberry", emoji: "🫐", exZh: "盘里有蓝莓", exPy: "pán lǐ yǒu lán méi", exEn: "There are blueberries in the plate." },
+        { word: "椰子", pinyin: "yé zi", eng: "Coconut", emoji: "🥥", exZh: "他在喝椰子", exPy: "tā zài hē yé zi", exEn: "He is drinking coconut." },
+        { word: "木瓜", pinyin: "mù guā", eng: "Papaya", emoji: "🥭", exZh: "他爱吃木瓜", exPy: "tā ài chī mù guā", exEn: "He loves papaya." },
+        { word: "火龙果", pinyin: "huǒ lóng guǒ", eng: "Dragon Fruit", emoji: "🌵", exZh: "我买火龙果", exPy: "wǒ mǎi huǒ lóng guǒ", exEn: "I buy dragon fruit." },
+        { word: "牛油果", pinyin: "niú yóu guǒ", eng: "Avocado", emoji: "🥑", exZh: "他做牛油果", exPy: "tā zuò niú yóu guǒ", exEn: "He makes avocado." },
+        { word: "哈密瓜", pinyin: "hā mì guā", eng: "Cantaloupe", emoji: "🍈", exZh: "这瓜很甜哦", exPy: "zhè guā hěn tián o", exEn: "This melon is very sweet." },
+        { word: "荔枝", pinyin: "lì zhī", eng: "Lychee", emoji: "🔴", exZh: "他爱吃荔枝", exPy: "tā ài chī lì zhī", exEn: "He loves lychees." },
+        { word: "榴莲", pinyin: "liú lián", eng: "Durian", emoji: "🍈", exZh: "榴莲非常臭", exPy: "liú lián fēi cháng chòu", exEn: "Durian is very smelly." },
+        { word: "石榴", pinyin: "shí liu", eng: "Pomegranate", emoji: "🍎", exZh: "石榴籽红了", exPy: "shí liu zǐ hóng le", exEn: "Pomegranate seeds turned red." },
+        { word: "李子", pinyin: "lǐ zi", eng: "Plum", emoji: "🫐", exZh: "妹妹要李子", exPy: "mèi mei yào lǐ zi", exEn: "Sister wants plums." },
+        { word: "柚子", pinyin: "yòu zi", eng: "Pomelo", emoji: "🍈", exZh: "爸爸买柚子", exPy: "bà ba mǎi yòu zi", exEn: "Dad buys a pomelo." },
+        { word: "山竹", pinyin: "shān zhú", eng: "Mangosteen", emoji: "🟣", exZh: "白色的山竹", exPy: "bái sè de shān zhú", exEn: "The white mangosteen." },
+        { word: "柿子", pinyin: "shì zi", eng: "Persimmon", emoji: "🍅", exZh: "柿子变红了", exPy: "shì zi biàn hóng le", exEn: "The persimmon turned red." },
+        { word: "枇杷", pinyin: "pí pá", eng: "Loquat", emoji: "🟠", exZh: "枇杷很好吃", exPy: "pí pá hěn hǎo chī", exEn: "Loquat is delicious." },
+        { word: "杨桃", pinyin: "yáng táo", eng: "Starfruit", emoji: "⭐", exZh: "他在看杨桃", exPy: "tā zài kàn yáng táo", exEn: "He is looking at starfruit." },
+        { word: "桑葚", pinyin: "sāng shèn", eng: "Mulberry", emoji: "🍇", exZh: "盘里有桑葚", exPy: "pán lǐ yǒu sāng shèn", exEn: "There are mulberries in the plate." },
+        { word: "无花果", pinyin: "wú huā guǒ", eng: "Fig", emoji: "🍂", exZh: "我摘无花果", exPy: "wǒ zhāi wú huā guǒ", exEn: "I pick a fig." },
+        { word: "甘蔗", pinyin: "gān zhè", eng: "Sugarcane", emoji: "🎋", exZh: "我嚼着甘蔗", exPy: "wǒ jiáo zhe gān zhè", exEn: "I am chewing sugarcane." },
+        { word: "红毛丹", pinyin: "hóng máo dān", eng: "Rambutan", emoji: "☄️", exZh: "这是红毛丹", exPy: "zhè shì hóng máo dān", exEn: "This is a rambutan." },
+        { word: "波罗蜜", pinyin: "bō luó mì", eng: "Jackfruit", emoji: "🍐", exZh: "它叫波罗蜜", exPy: "tā jiào bō luó mì", exEn: "It is called jackfruit." },
+        { word: "百香果", pinyin: "bǎi xiāng guǒ", eng: "Passion Fruit", emoji: "🟣", exZh: "她爱百香果", exPy: "tā ài bǎi xiāng guǒ", exEn: "She loves passion fruit." },
+        { word: "杏子", pinyin: "xìng zi", eng: "Apricot", emoji: "🍑", exZh: "树上有杏子", exPy: "shù shàng yǒu xìng zi", exEn: "There are apricots on the tree." },
+        { word: "树莓", pinyin: "shù méi", eng: "Raspberry", emoji: "🍓", exZh: "他采摘树莓", exPy: "tā cǎi zhāi shù méi", exEn: "He picks raspberries." },
+        { word: "蔓越莓", pinyin: "màn yuè méi", eng: "Cranberry", emoji: "🍒", exZh: "我买蔓越莓", exPy: "wǒ mǎi màn yuè méi", exEn: "I buy cranberries." },
+        { word: "黑莓", pinyin: "hēi méi", eng: "Blackberry", emoji: "🍇", exZh: "地里长黑莓", exPy: "dì lǐ zhǎng hēi méi", exEn: "Blackberries grow in the field." },
+        { word: "龙眼", pinyin: "lóng yǎn", eng: "Longan", emoji: "⚪", exZh: "爷爷吃龙眼", exPy: "yé ye chī lóng yǎn", exEn: "Grandpa eats longan." },
+        { word: "橘子", pinyin: "jú zi", eng: "Mandarin", emoji: "🍊", exZh: "我剥开橘子", exPy: "wǒ bō kāi jú zi", exEn: "I peel the mandarin." }
+    ];
+
+    let currentIdx = 0, currentMode = 'learn', score = 0, rushTimer, timeLeft = 30;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playAudioFeedback(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+        if (type === 'correct') {
+            osc.frequency.setValueAtTime(523, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(); osc.stop(now + 0.3);
+        } else {
+            osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(80, now + 0.3);
+            gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+            osc.start(); osc.stop(now + 0.3);
+        }
+    }
+
+    function speak(text, callback) {
+        if (!/[\u4e00-\u9fa5]/.test(text)) { if(callback) callback(); return; }
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'zh-CN';
+        if(callback) msg.onend = callback;
+        window.speechSynthesis.speak(msg);
+    }
+
+    function startMode(m) {
+        currentMode = m; score = 0; clearInterval(rushTimer);
+        document.querySelectorAll('.mode-view').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.nav-grid button').forEach(b => b.classList.remove('active'));
+        if(event) event.target.classList.add('active');
+
+        if(m === 'summary') {
+            document.getElementById('summary-container').classList.remove('hidden');
+            renderSummary();
+        } else if(m === 'quiz' || m === 'timed') {
+            document.getElementById('quiz-container').classList.remove('hidden');
+            document.getElementById('quiz-score-tag').innerText = "SCORE: 0";
+            if(m === 'timed') {
+                timeLeft = 30;
+                rushTimer = setInterval(() => {
+                    timeLeft -= 0.1;
+                    document.getElementById('quiz-timer-tag').innerText = Math.ceil(timeLeft) + "s";
+                    if(timeLeft <= 0) { 
+                        clearInterval(rushTimer); 
+                        speak("太棒了！测试结束"); 
+                        alert("时间到！得分: " + score); 
+                        startMode('learn'); 
+                    }
+                }, 100);
+            } else { document.getElementById('quiz-timer-tag').innerText = ""; }
+            nextQ();
+        } else {
+            document.getElementById('card-container').classList.remove('hidden');
+            renderDisplayCard(true);
+        }
+    }
+
+    function renderDisplayCard(immediate = false) {
+        const h = fruits[currentIdx];
+        const card = document.getElementById('display-card');
+        if(immediate) { updateCardContent(h); return; }
+        card.classList.add('is-switching');
+        setTimeout(() => { updateCardContent(h); card.classList.remove('is-switching'); }, 200);
+    }
+
+    function updateCardContent(h) {
+        let frontHTML = '', speakText = h.word;
+        if(currentMode === 'learn') {
+            frontHTML = `<div class="emoji-huge">${h.emoji}</div><ruby class="word-ruby">${h.word}<rt>${h.pinyin}</rt></ruby>`;
+        } else if(currentMode === 'card-cn') {
+            frontHTML = `<div style="font-size:8rem; font-weight:bold;">${h.word}</div>`;
+        } else if(currentMode === 'card-en') {
+            frontHTML = `<div class="word-en-huge">${h.eng}</div>`; speakText = h.eng;
+        }
+        
+        document.getElementById('card-f').innerHTML = frontHTML;
+        document.getElementById('card-b').innerHTML = `
+            <div class="emoji-huge" style="font-size:4rem; margin-bottom:0;">${h.emoji}</div>
+            <ruby class="word-ruby" style="font-size:3.5rem;">${h.word}<rt>${h.pinyin}</rt></ruby>
+            <div class="back-eng-title">${h.eng}</div>
+            <div class="ex-container">
+                <div class="ex-ruby">${generateRuby(h.exZh, h.exPy)}</div>
+                <div class="ex-en">${h.exEn}</div>
+            </div>`;
+        document.getElementById('progress-tag').innerText = (currentIdx + 1).toString().padStart(2, '0') + "/40";
+        speak(speakText);
+    }
+
+    function generateRuby(zh, py) {
+        const chars = zh.split(''); const pinyins = py.split(' ');
+        return chars.map((c, i) => `<ruby>${c}<rt>${pinyins[i] || ''}</rt></ruby>`).join('');
+    }
+
+    function handleCardClick() {
+        const card = document.getElementById('display-card');
+        const h = fruits[currentIdx];
+        if(!card.classList.contains('is-flipped')) {
+            card.classList.add('is-flipped'); 
+            if(currentMode === 'card-en') {
+                speak(h.word, () => { setTimeout(() => speak(h.exZh), 500); });
+            } else { speak(h.exZh); }
+        } else {
+            card.classList.remove('is-flipped'); currentIdx = (currentIdx + 1) % fruits.length;
+            setTimeout(() => { renderDisplayCard(); }, 300); 
+        }
+    }
+
+    function renderSummary() {
+        document.getElementById('summary-list').innerHTML = fruits.map((h, i) => `
+            <div class="list-item" onclick="currentIdx=${i}; startMode('learn');">
+                <div style="text-align:left"><span style="font-size:1.6rem; font-weight:bold;">${h.emoji} ${h.word}</span></div>
+                <div style="color:var(--primary-blue); font-size:1.1rem; font-weight:600;">${h.eng}</div>
+            </div>`).join('');
+    }
+
+    function nextQ() {
+        const h = fruits[Math.floor(Math.random() * fruits.length)];
+        const isCN = Math.random() > 0.5;
+        document.getElementById('quiz-q').innerText = isCN ? h.word : h.eng;
+        const correct = isCN ? h.eng : h.word;
+        let opts = [correct];
+        while(opts.length < 4) {
+            let f = fruits[Math.floor(Math.random() * fruits.length)][isCN ? 'eng' : 'word'];
+            if(!opts.includes(f)) opts.push(f);
+        }
+        opts.sort(() => Math.random() - 0.5);
+        document.getElementById('quiz-opts').innerHTML = opts.map(o => `
+            <button class="opt-btn" onclick="checkQuizAnswer(this, '${o}', '${correct}')">${o}</button>`).join('');
+    }
+
+    function checkQuizAnswer(btn, selected, correct) {
+        const allBtns = document.querySelectorAll('.opt-btn');
+        allBtns.forEach(b => b.disabled = true);
+        const correctWordCN = /[\u4e00-\u9fa5]/.test(correct) ? correct : fruits.find(f => f.eng === correct).word;
+
+        if(selected === correct) {
+            playAudioFeedback('correct'); 
+            btn.classList.add('correct');
+            score += 10;
+        } else {
+            playAudioFeedback('wrong'); 
+            btn.classList.add('wrong');
+            allBtns.forEach(b => { if(b.innerText === correct) b.classList.add('correct'); });
+            score = Math.max(0, score - 5); 
+            if(currentMode === 'timed') timeLeft -= 1.5;
+        }
+        
+        speak(correctWordCN);
+        document.getElementById('quiz-score-tag').innerText = "SCORE: " + score;
+        setTimeout(nextQ, 1500);
+    }
+
+    startMode('learn');
+</script>
+</body>
+</html>
