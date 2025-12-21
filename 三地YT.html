@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生词模式：陆台港三地对比 🏮</title>
+    <style>
+        :root {
+            --pinyin-color: #ff4757;
+            --main-bg: #f5f6fa;
+            --card-bg: #ffffff;
+            --accent: #2f3542;
+            --watermark-color: rgba(47, 53, 66, 0.1);
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--main-bg);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #app { 
+            width: 95%; 
+            max-width: 900px; 
+            text-align: center; 
+            z-index: 1; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 顶部区域控制 */
+        .header-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .watermark {
+            font-size: 1.8rem;
+            font-weight: 900;
+            letter-spacing: 5px;
+            color: var(--watermark-color);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            user-select: none;
+        }
+
+        .list-btn {
+            padding: 8px 20px;
+            background: var(--accent);
+            color: white;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin-bottom: 15px; /* 按钮与分类之间的间距 */
+            transition: transform 0.2s;
+        }
+        .list-btn:active { transform: scale(0.95); }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 30px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.12);
+            padding: 35px 40px;
+            width: 100%;
+            min-height: 480px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            cursor: pointer;
+            position: relative;
+            transition: opacity 0.3s ease-in-out;
+            box-sizing: border-box;
+        }
+
+        .card.fade-out { opacity: 0; pointer-events: none; }
+
+        .progress { position: absolute; top: 25px; right: 30px; font-size: 0.9rem; color: #a4b0be; font-weight: bold; }
+
+        .category {
+            font-size: 0.85rem;
+            color: #747d8c;
+            background: #f1f2f6;
+            padding: 4px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+
+        .english-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .word-container { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; width: 100%; }
+
+        .term-box {
+            opacity: 0;
+            transform: translateY(15px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 20px 10px;
+            border-radius: 20px;
+        }
+
+        .term-box.active { opacity: 1; transform: translateY(0); }
+        .ml-box { background: #fffcf9; }
+        .tw-box { background: #f9fcff; }
+        .hk-box { background: #fcf9ff; }
+
+        /* 字体字形渲染 */
+        .tw-box ruby, [lang="zh-TW"] ruby { font-family: "Microsoft JhengHei", "PingFang TC", sans-serif; }
+        .hk-box ruby, [lang="zh-HK"] ruby { font-family: "PingFang HK", "MingLiU_HKSCS", sans-serif; }
+
+        ruby { font-size: 1.6rem; font-weight: bold; color: var(--accent); }
+        rt { color: var(--pinyin-color); font-size: 0.85rem; font-weight: bold; }
+
+        .emoji { font-size: 3rem; margin: 12px 0; }
+        .label { font-size: 0.75rem; color: #747d8c; font-weight: bold; }
+
+        .hint-bar { margin-top: 25px; color: #1e90ff; font-weight: bold; font-size: 1.1rem; height: 24px; }
+
+        /* 列表模式 */
+        #listOverlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 15px;
+        }
+
+        .list-table { width: 100%; border-collapse: collapse; }
+        .list-table th { background: #f8f9fa; padding: 12px; font-size: 0.85rem; color: #666; position: sticky; top: 0; }
+        .list-table td { padding: 12px; border-bottom: 1px solid #f1f1f1; vertical-align: middle; }
+        
+        .clickable-term {
+            cursor: pointer;
+            display: inline-block;
+            padding: 8px;
+            border-radius: 10px;
+            transition: background 0.2s;
+        }
+        .clickable-term:active { background: #e8f4ff; }
+
+        .list-ruby { font-weight: bold; font-size: 1.1rem; pointer-events: none; }
+        .list-ruby rt { color: var(--pinyin-color); font-size: 0.75rem; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="header-section">
+        <div class="watermark">XUSFUNCHINESE</div>
+        <button class="list-btn" onclick="toggleList(true)">📋 查看完整列表 (40组)</button>
+    </div>
+
+    <div class="card" id="mainCard">
+        <div class="progress" id="progressText">1 / 40</div>
+        
+        <div class="content-header">
+            <div class="category" id="catText">CATEGORY</div>
+            <div class="english-title" id="enText">ENGLISH</div>
+        </div>
+        
+        <div class="word-container">
+            <div class="term-box ml-box" id="mlBox" lang="zh-CN">
+                <ruby id="mlWord">词汇<rt id="mlPinyin">pinyin</rt></ruby>
+                <div class="emoji" id="mlEmoji">🇨🇳</div>
+                <div class="label">🇨🇳 大陆</div>
+            </div>
+            <div class="term-box tw-box" id="twBox" lang="zh-TW">
+                <ruby id="twWord">词汇<rt id="twPinyin">pinyin</rt></ruby>
+                <div class="emoji" id="twEmoji">🇹🇼</div>
+                <div class="label">🇹🇼 台湾</div>
+            </div>
+            <div class="term-box hk-box" id="hkBox" lang="zh-HK">
+                <ruby id="hkWord">词汇<rt id="hkPinyin">pinyin</rt></ruby>
+                <div class="emoji" id="hkEmoji">🇭🇰</div>
+                <div class="label">🇭🇰 香港</div>
+            </div>
+        </div>
+        <div class="hint-bar" id="hintText">点击开始</div>
+    </div>
+</div>
+
+<div id="listOverlay">
+    <div class="list-header">
+        <h3 style="margin:0">对比表 (点击汉字发音)</h3>
+        <button class="list-btn" onclick="toggleList(false)" style="margin:0">返回卡片</button>
+    </div>
+    <table class="list-table">
+        <thead>
+            <tr>
+                <th width="22%">英文</th>
+                <th width="26%">大陆 🇨🇳</th>
+                <th width="26%">台湾 🇹🇼</th>
+                <th width="26%">香港 🇭🇰</th>
+            </tr>
+        </thead>
+        <tbody id="listBody"></tbody>
+    </table>
+</div>
+
+<script>
+    const wordData = [
+        { en: "Potato", cat: "食物", ml: ["土豆", "tǔ dòu", "🥔"], tw: ["馬鈴薯", "mǎ líng shǔ", "🥔"], hk: ["薯仔", "syu4 zai2", "🥔"] },
+        { en: "Peanut", cat: "食物", ml: ["花生", "huā shēng", "🥜"], tw: ["土豆", "tǔ dòu", "🥜"], hk: ["花生", "faa1 sang1", "🥜"] },
+        { en: "Strawberry", cat: "食物", ml: ["草莓", "cǎo méi", "🍓"], tw: ["草莓", "cǎo méi", "🍓"], hk: ["士多啤梨", "si6 do1 be1 lei2", "🍓"] },
+        { en: "Popsicle", cat: "食物", ml: ["冰棍", "bīng gùn", "🍦"], tw: ["冰棒", "bīng bàng", "🍦"], hk: ["雪条", "syut3 tiu2", "🍦"] },
+        { en: "Instant Noodles", cat: "食物", ml: ["方便面", "fāng biàn miàn", "🍜"], tw: ["泡麵", "pào miàn", "🍜"], hk: ["公仔面", "gung1 zai2 min6", "🍜"] },
+        { en: "Tuna", cat: "食物", ml: ["金枪鱼", "jīn qiāng yú", "🐟"], tw: ["鮪魚", "wěi yú", "🐟"], hk: ["吞拿鱼", "tan1 naa4 jyu2", "🐟"] },
+        { en: "Pineapple", cat: "食物", ml: ["菠萝", "bō luó", "🍍"], tw: ["鳳梨", "fèng lí", "🍍"], hk: ["菠萝", "bo1 lo4", "🍍"] },
+        { en: "Tomato", cat: "食物", ml: ["西红柿", "xī hóng shì", "🍅"], tw: ["番茄", "fān qié", "🍅"], hk: ["番茄", "faan1 ke2", "🍅"] },
+        { en: "Salmon", cat: "食物", ml: ["三文鱼", "sān wén yú", "🍣"], tw: ["鮭魚", "guī yú", "🍣"], hk: ["三文鱼", "saam1 man4 jyu2", "🍣"] },
+        { en: "Cheese", cat: "食物", ml: ["奶酪", "nǎi lào", "🧀"], tw: ["起司", "qǐ sī", "🧀"], hk: ["芝士", "zi1 si6", "🧀"] },
+        { en: "Sandwich", cat: "食物", ml: ["三明治", "sān míng zhì", "🥪"], tw: ["三明治", "sān míng zhì", "🥪"], hk: ["三文治", "saam1 man4 zi6", "🥪"] },
+        { en: "In Love", cat: "生活", ml: ["谈恋爱", "tán liàn ài", "💑"], tw: ["談戀愛", "tán liàn ài", "💑"], hk: ["拍拖", "paak3 to1", "👩‍❤️‍👨"] },
+        { en: "Sneakers", cat: "生活", ml: ["球鞋", "qiú xié", "👟"], tw: ["球鞋", "qiú xié", "👟"], hk: ["波鞋", "bo1 haai4", "👟"] },
+        { en: "Quality", cat: "生活", ml: ["质量", "zhì liàng", "⚖️"], tw: ["品質", "pǐn zhí", "⚖️"], hk: ["质素", "zat1 sou3", "⚖️"] },
+        { en: "Trash Can", cat: "生活", ml: ["垃圾桶", "lā jī tǒng", "🗑️"], tw: ["垃圾桶", "lè sè tǒng", "🗑️"], hk: ["垃圾桶", "laap6 saap3 tung2", "🗑️"] },
+        { en: "Straw", cat: "生活", ml: ["吸管", "xī guǎn", "🥤"], tw: ["吸管", "xī guǎn", "🥤"], hk: ["饮管", "jam2 gun2", "🥤"] },
+        { en: "Restroom", cat: "生活", ml: ["卫生间", "wèi shēng jiān", "🚽"], tw: ["化妝室", "huà zhuāng shì", "🚽"], hk: ["洗手间", "sai2 sau2 gaan1", "🚽"] },
+        { en: "SMS Message", cat: "生活", ml: ["短信息", "duǎn xìn xī", "📱"], tw: ["簡訊", "jiǎn xùn", "📱"], hk: ["短讯", "dyun2 seon3", "📱"] },
+        { en: "Video", cat: "生活", ml: ["视频", "shì pín", "🎬"], tw: ["影片", "yǐng piàn", "🎬"], hk: ["短片", "dyun2 pin2", "🎬"] },
+        { en: "Ballpoint Pen", cat: "生活", ml: ["圆珠笔", "yuán zhū bǐ", "🖊️"], tw: ["原子筆", "yuán zǐ bǐ", "🖊️"], hk: ["原子笔", "jyun4 zi2 bat1", "🖊️"] },
+        { en: "Shampoo", cat: "生活", ml: ["洗发水", "xǐ fà shuǐ", "🧴"], tw: ["洗髮精", "xǐ fà jīng", "🧴"], hk: ["洗头水", "sai2 tau4 seoi2", "🧴"] },
+        { en: "Spoon", cat: "生活", ml: ["勺子", "sháo zi", "🥄"], tw: ["湯匙", "tāng chí", "🥄"], hk: ["匙羹", "ci4 gang1", "🥄"] },
+        { en: "Good Morning", cat: "生活", ml: ["早上好", "zǎo shàng hǎo", "☀️"], tw: ["早安", "zǎo ān", "☀️"], hk: ["早晨", "zou2 san4", "☀️"] },
+        { en: "Off Work", cat: "职场", ml: ["下班", "xià bān", "🏢"], tw: ["下班", "xià bān", "🏢"], hk: ["收工", "sau1 gung1", "🏃‍♂️"] },
+        { en: "Overtime", cat: "职场", ml: ["加班", "jiā bān", "🌙"], tw: ["加班", "jiā bān", "🌙"], hk: ["OT", "O-T", "🌑"] },
+        { en: "Boss", cat: "职场", ml: ["老板", "lǎo bǎn", "👔"], tw: ["老闆", "lǎo bǎn", "👔"], hk: ["老细", "lou5 sai3", "🕶️"] },
+        { en: "Resume", cat: "职场", ml: ["简历", "jiǎn lì", "📄"], tw: ["履歷", "lǚ lì", "📄"], hk: ["CV", "C-V", "📄"] },
+        { en: "Taxi", cat: "交通", ml: ["出租车", "chū zū chē", "🚕"], tw: ["計程車", "jì chéng chē", "🚕"], hk: ["的士", "dik1 si2", "🚕"] },
+        { en: "Bicycle", cat: "交通", ml: ["自行车", "zì xíng chē", "🚲"], tw: ["腳踏車", "jiǎo tà chē", "🚲"], hk: ["单车", "daan1 ce1", "🚲"] },
+        { en: "Subway", cat: "交通", ml: ["地铁", "dì tiě", "🚇"], tw: ["捷運", "jié yùn", "🚇"], hk: ["地铁", "dei6 tit3", "🚇"] },
+        { en: "Bus", cat: "交通", ml: ["公交车", "gōng jiāo chē", "🚌"], tw: ["公車", "gōng chē", "🚌"], hk: ["巴士", "baa1 si2", "🚌"] },
+        { en: "Power Bank", cat: "科技", ml: ["充电宝", "chōng diàn bǎo", "🔋"], tw: ["行動電源", "xíng dòng", "🔋"], hk: ["尿袋", "niu6 doi2", "🔋"] },
+        { en: "Drone", cat: "科技", ml: ["无人机", "wú rén jī", "🚁"], tw: ["空拍機", "kōng pāi jī", "🚁"], hk: ["航拍机", "hong4 paak3 gei1", "🚁"] },
+        { en: "Hard Drive", cat: "科技", ml: ["硬盘", "yìng pán", "💾"], tw: ["硬碟", "yìng dié", "💾"], hk: ["机盘", "gei1 pun4", "💾"] },
+        { en: "Air Conditioner", cat: "科技", ml: ["空调", "kōng tiáo", "❄️"], tw: ["冷氣", "lěng qì", "❄️"], hk: ["冷气", "laang5 hei3", "❄️"] },
+        { en: "Laptop", cat: "科技", ml: ["笔记本", "bǐ jì běn", "💻"], tw: ["筆電", "bǐ diàn", "💻"], hk: ["手提电脑", "sau2 tai4 din6 nou5", "💻"] },
+        { en: "Software", cat: "科技", ml: ["软件", "ruǎn jiàn", "💿"], tw: ["軟體", "ruǎn tǐ", "💿"], hk: ["软件", "jun5 gin2", "💿"] },
+        { en: "Mobile Phone", cat: "科技", ml: ["手机", "shǒu jī", "📱"], tw: ["手機", "shǒu jī", "📱"], hk: ["手机", "sau2 gei1", "📱"] },
+        { en: "Skip Class", cat: "学习", ml: ["逃课", "táo kè", "🏃"], tw: ["翹課", "qiào kè", "🏃"], hk: ["走堂", "zau2 tong4", "🏫"] },
+        { en: "Thoughtful", cat: "情感", ml: ["贴心", "tiē xīn", "❤️"], tw: ["窩心", "wō xīn", "❤️"], hk: ["暖心", "nyun5 sam1", "🥰"] }
+    ];
+
+    let currentIndex = 0;
+    let step = 0;
+    const mainCard = document.getElementById('mainCard');
+    let voices = [];
+
+    function initVoices() {
+        voices = window.speechSynthesis.getVoices();
+    }
+    initVoices();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = initVoices;
+    }
+
+    function speak(text, lang) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        if (voices.length === 0) voices = window.speechSynthesis.getVoices();
+        
+        let target = null;
+        if (lang === 'zh-HK') target = voices.find(v => v.lang.includes('HK') || v.lang.includes('yue'));
+        else if (lang === 'zh-TW') target = voices.find(v => v.lang.includes('TW') || v.name.includes('Taiwan'));
+        else target = voices.find(v => v.lang.includes('CN') || v.name.includes('Mainland'));
+
+        if (target) utterance.voice = target;
+        utterance.lang = lang;
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function updateCardData() {
+        const data = wordData[currentIndex];
+        document.getElementById('progressText').innerText = `${currentIndex + 1} / ${wordData.length}`;
+        document.getElementById('catText').innerText = data.cat;
+        document.getElementById('enText').innerText = data.en;
+        document.getElementById('mlWord').innerHTML = `${data.ml[0]}<rt>${data.ml[1]}</rt>`;
+        document.getElementById('mlEmoji').innerText = data.ml[2];
+        document.getElementById('twWord').innerHTML = `${data.tw[0]}<rt>${data.tw[1]}</rt>`;
+        document.getElementById('twEmoji').innerText = data.tw[2];
+        document.getElementById('hkWord').innerHTML = `${data.hk[0]}<rt>${data.hk[1]}</rt>`;
+        document.getElementById('hkEmoji').innerText = data.hk[2];
+        document.getElementById('hintText').innerText = "点击显示大陆";
+        document.getElementById('hintText').style.color = "#1e90ff";
+    }
+
+    mainCard.onclick = () => {
+        const data = wordData[currentIndex];
+        if (step === 0) {
+            document.getElementById('mlBox').classList.add('active');
+            speak(data.ml[0], 'zh-CN');
+            document.getElementById('hintText').innerText = "点击解锁台湾";
+            step = 1;
+        } else if (step === 1) {
+            document.getElementById('twBox').classList.add('active');
+            speak(data.tw[0], 'zh-TW');
+            document.getElementById('hintText').innerText = "点击解锁香港";
+            step = 2;
+        } else if (step === 2) {
+            document.getElementById('hkBox').classList.add('active');
+            speak(data.hk[0], 'zh-HK');
+            document.getElementById('hintText').innerText = "下一组";
+            document.getElementById('hintText').style.color = "#2ed573";
+            step = 3;
+        } else {
+            mainCard.classList.add('fade-out');
+            setTimeout(() => {
+                document.getElementById('mlBox').classList.remove('active');
+                document.getElementById('twBox').classList.remove('active');
+                document.getElementById('hkBox').classList.remove('active');
+                currentIndex = (currentIndex + 1) % wordData.length;
+                updateCardData();
+                step = 0;
+                mainCard.classList.remove('fade-out');
+            }, 300);
+        }
+    };
+
+    function toggleList(show) {
+        const overlay = document.getElementById('listOverlay');
+        overlay.style.display = show ? 'flex' : 'none';
+        if (show && document.getElementById('listBody').innerHTML === "") {
+            renderList();
+        }
+    }
+
+    function renderList() {
+        const body = document.getElementById('listBody');
+        body.innerHTML = wordData.map((d) => `
+            <tr>
+                <td><small>${d.cat}</small><br><strong>${d.en}</strong></td>
+                <td>
+                    <div class="clickable-term" onclick="speak('${d.ml[0]}', 'zh-CN')">
+                        <ruby class="list-ruby">${d.ml[0]}<rt>${d.ml[1]}</rt></ruby> ${d.ml[2]}
+                    </div>
+                </td>
+                <td lang="zh-TW">
+                    <div class="clickable-term" onclick="speak('${d.tw[0]}', 'zh-TW')">
+                        <ruby class="list-ruby">${d.tw[0]}<rt>${d.tw[1]}</rt></ruby> ${d.tw[2]}
+                    </div>
+                </td>
+                <td lang="zh-HK">
+                    <div class="clickable-term" onclick="speak('${d.hk[0]}', 'zh-HK')">
+                        <ruby class="list-ruby">${d.hk[0]}<rt>${d.hk[1]}</rt></ruby> ${d.hk[2]}
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    updateCardData();
+</script>
+</body>
+</html>
