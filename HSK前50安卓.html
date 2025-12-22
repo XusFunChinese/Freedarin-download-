@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+    <title>XUSFUNCHINESE - HSK1 Mastery 🏮</title>
+    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+    <style>
+        :root { --pinyin-red: #d63031; --ink: #2f3542; --paper: #f7f1e3; --gold: #b33939; --accent: #218c74; }
+        body { 
+            font-family: 'STKaiti', 'Kaiti', '楷体', 'Microsoft YaHei', serif; 
+            background: #1a1a1a; margin: 0; display: flex; 
+            justify-content: center; align-items: center; height: 100vh; overflow: hidden; 
+            touch-action: none;
+        }
+        #app-container { 
+            width: 96vw; height: 92vh; background: var(--paper); 
+            display: flex; position: relative; border: 8px double var(--gold); 
+            box-sizing: border-box; overflow: hidden;
+        }
+        .bg-watermark {
+            position: absolute; width: 150%; height: 150%; top: -25%; left: -25%;
+            display: flex; flex-wrap: wrap; justify-content: space-around;
+            transform: rotate(-30deg); pointer-events: none; opacity: 0.15; z-index: 1;
+        }
+        .bg-watermark span {
+            font-size: 2.2rem; font-weight: 900; color: #b33939; margin: 35px;
+            letter-spacing: 5px; text-transform: uppercase; white-space: nowrap;
+        }
+        .sidebar { width: 160px; background: rgba(255,255,255,0.85); border-right: 2px solid var(--gold); display: flex; flex-direction: column; z-index: 10; }
+        .sidebar button { padding: 16px; border: none; background: none; font-size: 0.95rem; font-weight: bold; color: var(--ink); cursor: pointer; border-bottom: 1px solid rgba(0,0,0,0.05); text-align: left; font-family: inherit; }
+        .sidebar button.active { background: var(--gold); color: white; }
+        .content { flex: 1; padding: 10px; display: flex; flex-direction: column; align-items: center; overflow-y: auto; position: relative; z-index: 5; }
+        #feedback-box { font-size: 3.5rem; height: 1.2em; margin-bottom: 5px; color: var(--accent); font-weight: bold; }
+        .grid-flex { display: flex; gap: 10px; margin: 5px 0; }
+        .tian-wrapper { position: relative; width: 220px; height: 220px; background: #fff; border: 3px solid #8b4513; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .tianzige { position: absolute; width: 100%; height: 100%; pointer-events: none; opacity: 0.25;
+            background: 
+                linear-gradient(45deg, transparent 49%, red 50%, transparent 51%), 
+                linear-gradient(-45deg, transparent 49%, red 50%, transparent 51%),
+                linear-gradient(to right, transparent 49%, red 50%, transparent 51%), 
+                linear-gradient(to bottom, transparent 49%, red 50% ,transparent 51%); 
+        }
+        .writer-div { position: absolute; top:0; left:0; width:100%; height:100%; z-index: 5; pointer-events: none; }
+        canvas { position: absolute; top:0; left:0; z-index: 10; touch-action: none; background: transparent; }
+        .btn { padding: 12px 25px; border-radius: 25px; border: none; cursor: pointer; background: var(--ink); color: #fff; font-weight: bold; margin: 5px; font-family: inherit; transition: 0.3s; }
+        .btn:active { transform: scale(0.95); }
+        #match-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 95%; margin-top: 15px; }
+        .match-item { background: #fff; padding: 15px; border: 2px solid var(--gold); border-radius: 12px; text-align: center; cursor: pointer; font-weight: bold; font-size: 1.1rem; }
+        .match-item.selected { background: var(--gold); color: white; }
+        .match-item.hidden { visibility: hidden; opacity: 0; }
+        .list-card { background:#fff; padding:12px; border-radius:8px; border:1px solid #ddd; display:flex; align-items:center; gap:10px; cursor:pointer; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div class="bg-watermark">
+        <span>XUSFUNCHINESE</span><span>XUSFUNCHINESE</span><span>XUSFUNCHINESE</span>
+        <span>XUSFUNCHINESE</span><span>XUSFUNCHINESE</span><span>XUSFUNCHINESE</span>
+    </div>
+    <div class="sidebar">
+        <button id="n-learn" class="active" onclick="switchMode('learn')">📖 Study</button>
+        <button id="n-write" onclick="switchMode('write')">✍️ Dictation</button>
+        <button id="n-match" onclick="switchMode('match')">🧩 Match</button>
+        <button id="n-pinyin" onclick="switchMode('pinyin')">⌨️ Pinyin</button>
+        <button id="n-list" onclick="switchMode('list')">📜 List</button>
+    </div>
+    <div class="content">
+        <div id="feedback-box"></div>
+        <div id="mode-write" class="view" style="display:none;">
+            <div id="w-mean" style="font-size: 2.2rem; font-weight: bold; color: var(--pinyin-red);"></div>
+            <div id="w-grids" class="grid-flex"></div>
+            <div>
+                <button id="ans-btn" class="btn" style="background:var(--gold)" onclick="handleAnswerClick()">Show Answer (答案)</button>
+                <button class="btn" style="background:var(--accent)" onclick="nextWord()">Next (下一个)</button>
+            </div>
+        </div>
+        <div id="mode-learn" class="view">
+            <div style="text-align: center;">
+                <div id="s-pinyin" style="color:var(--pinyin-red); font-size:2.5rem; font-weight:bold;"></div>
+                <div id="s-mean" style="font-size:1.5rem; color:#444;"></div>
+            </div>
+            <div id="s-grids" class="grid-flex"></div>
+            <button class="btn" onclick="nextWord()">Next Word</button>
+        </div>
+        <div id="mode-match" class="view" style="display:none; width:100%"><div id="match-grid"></div></div>
+        <div id="mode-pinyin" class="view" style="display:none;">
+            <h1 id="p-char" style="font-size: 6.5rem; margin: 10px;"></h1>
+            <input type="text" id="p-input" placeholder="Pinyin..." style="padding:15px; font-size:1.8rem; text-align:center; border:3px solid var(--gold); border-radius:15px;">
+            <button class="btn" style="margin-top:20px;" onclick="checkPinyin()">Check</button>
+        </div>
+        <div id="mode-list" class="view" style="display:none; width:100%"><div id="list-view" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; width:95%; padding:20px;"></div></div>
+    </div>
+</div>
+
+<script>
+const vocabulary = [
+    {c:"我", p:"wǒ", m:"I / me"}, {c:"你", p:"nǐ", m:"you"}, {c:"他", p:"tā", m:"he"}, {c:"她", p:"tā", m:"she"}, {c:"我们", p:"wǒmen", m:"we"},
+    {c:"好", p:"hǎo", m:"good"}, {c:"是", p:"shì", m:"to be"}, {c:"不", p:"bù", m:"not"}, {c:"谢谢", p:"xièxie", m:"thanks"}, {c:"再见", p:"zàijiàn", m:"goodbye"},
+    {c:"请", p:"qǐng", m:"please"}, {c:"对不起", p:"duìbuqǐ", m:"sorry"}, {c:"老师", p:"lǎoshī", m:"teacher"}, {c:"学生", p:"xuésheng", m:"student"}, {c:"朋友", p:"péngyou", m:"friend"},
+    {c:"医生", p:"yīshēng", m:"doctor"}, {c:"家", p:"jiā", m:"home"}, {c:"学校", p:"xuéxiào", m:"school"}, {c:"商店", p:"shāngdiàn", m:"shop"}, {c:"现在", p:"xiànzài", m:"now"},
+    {c:"今天", p:"jīntiān", m:"today"}, {c:"昨天", p:"zuótiān", m:"yesterday"}, {c:"明天", p:"míngtiān", m:"tomorrow"}, {c:"年", p:"nián", m:"year"}, {c:"月", p:"yuè", m:"month"},
+    {c:"号", p:"hào", m:"date"}, {c:"点", p:"diǎn", m:"o'clock"}, {c:"分钟", p:"fēnzhōng", m:"minute"}, {c:"钱", p:"qián", m:"money"}, {c:"水", p:"shuǐ", m:"water"},
+    {c:"茶", p:"chá", m:"tea"}, {c:"水果", p:"shuǐguǒ", m:"fruit"}, {c:"苹果", p:"píngguǒ", m:"apple"}, {c:"杯子", p:"bēizi", m:"cup"}, {c:"书", p:"shū", m:"book"},
+    {c:"椅子", p:"yǐzi", m:"chair"}, {c:"桌子", p:"zhuōzi", m:"table"}, {c:"猫", p:"māo", m:"cat"}, {c:"狗", p:"gǒu", m:"dog"}, {c:"北京", p:"běijīng", m:"Beijing"},
+    {c:"看", p:"kàn", m:"look"}, {c:"听", p:"tīng", m:"listen"}, {c:"说话", p:"shuōhuà", m:"speak"}, {c:"读", p:"dú", m:"read"}, {c:"写", p:"xiě", m:"write"},
+    {c:"喝", p:"hē", m:"drink"}, {c:"吃", p:"chī", m:"eat"}, {c:"开", p:"kāi", m:"drive/open"}, {c:"坐", p:"zuò", m:"sit"}, {c:"买", p:"mǎi", m:"buy"}
+];
+
+let curIdx = 0, ansIsVisible = false, selectedMatch = [];
+
+function speak(t) { 
+    const m = new SpeechSynthesisUtterance(t); 
+    m.lang = 'zh-CN'; m.rate = 0.7; m.pitch = 1.1; 
+    window.speechSynthesis.speak(m); 
+}
+
+function playSfx(win) { 
+    const a = new (window.AudioContext || window.webkitAudioContext)();
+    const o = a.createOscillator(), g = a.createGain();
+    o.connect(g); g.connect(a.destination); g.gain.value = 0.01;
+    o.frequency.setValueAtTime(win ? 523 : 146, a.currentTime);
+    o.start(); o.stop(a.currentTime + 0.1);
+}
+
+function switchMode(m) {
+    document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
+    document.getElementById('n-'+m).classList.add('active');
+    document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+    document.getElementById('mode-'+m).style.display = (m==='list' || m==='match') ? 'block' : 'flex';
+    if(m==='list') renderList();
+    if(m==='match') initMatch();
+    updateUI();
+}
+
+function updateUI() {
+    const item = vocabulary[curIdx];
+    document.getElementById('feedback-box').innerText = '';
+    if(document.getElementById('mode-write').style.display !== 'none') {
+        document.getElementById('w-mean').innerText = item.m;
+        const cont = document.getElementById('w-grids'); 
+        cont.innerHTML = ''; 
+        ansIsVisible = false;
+        document.getElementById('ans-btn').innerText = "Show Answer (答案)";
+        [...item.c].forEach((char, i) => {
+            cont.appendChild(createGrid(char, 'write', i));
+            initCanvas(`can-${i}`);
+        });
+    }
+    if(document.getElementById('mode-learn').style.display !== 'none') {
+        document.getElementById('s-pinyin').innerText = item.p;
+        document.getElementById('s-mean').innerText = item.m;
+        const cont = document.getElementById('s-grids'); cont.innerHTML = '';
+        [...item.c].forEach(char => {
+            const wrap = createGrid(char, 'study'); cont.appendChild(wrap);
+            setTimeout(() => {
+                const w = HanziWriter.create(wrap.querySelector('.writer-div'), char, { 
+                    width: 220, height: 220, padding: 5, strokeColor: '#2f3542',
+                    strokeAnimationSpeed: 1.3 // 笔画速度快30%
+                });
+                wrap.onclick = () => { speak(char); w.animateCharacter({ strokeColor: 'red' }); };
+            }, 50);
+        });
+    }
+    document.getElementById('p-char').innerText = item.c;
+}
+
+function createGrid(char, mode, idx) {
+    const w = document.createElement('div'); w.className = 'tian-wrapper';
+    w.innerHTML = `<div class="tianzige"></div><div class="writer-div" id="writer-target-${idx}"></div>`;
+    if(mode === 'write') w.innerHTML += `<canvas id="can-${idx}" width="220" height="220"></canvas>`;
+    return w;
+}
+
+// 模拟“顿笔”效果的正楷书写逻辑
+function initCanvas(id) {
+    const c = document.getElementById(id); if(!c) return;
+    const ctx = c.getContext('2d', { alpha: true });
+    let drawing = false; 
+    let lastX, lastY, lastTime;
+
+    const getP = (e) => { 
+        const r = c.getBoundingClientRect();
+        const t = e.touches ? e.touches[0] : e;
+        return { x: t.clientX - r.left, y: t.clientY - r.top, time: Date.now() }; 
+    };
+
+    const stopScroll = (e) => { if(e.cancelable) e.preventDefault(); };
+
+    c.addEventListener('touchstart', (e) => {
+        stopScroll(e);
+        drawing = true;
+        const p = getP(e);
+        lastX = p.x; lastY = p.y; lastTime = p.time;
+        ctx.beginPath();
+        ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 18; // 初始顿笔重
+        ctx.moveTo(p.x, p.y);
+    }, { passive: false });
+
+    c.addEventListener('touchmove', (e) => {
+        stopScroll(e);
+        if(!drawing) return; 
+        const p = getP(e);
+        const dist = Math.sqrt((p.x - lastX)**2 + (p.y - lastY)**2);
+        const time = p.time - lastTime;
+        const speed = dist / time;
+
+        // 根据速度调整粗细：慢则粗（顿笔/拐弯），快则细（行笔）
+        let newWidth = 18 - (speed * 2);
+        ctx.lineWidth = Math.max(10, Math.min(20, newWidth));
+        
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        
+        lastX = p.x; lastY = p.y; lastTime = p.time;
+    }, { passive: false });
+
+    c.addEventListener('touchend', () => { 
+        // 收笔顿笔效果
+        ctx.lineWidth += 4;
+        ctx.stroke();
+        drawing = false; 
+    }, { passive: false });
+}
+
+function handleAnswerClick() {
+    ansIsVisible = !ansIsVisible;
+    const btn = document.getElementById('ans-btn');
+    const item = vocabulary[curIdx];
+    if (ansIsVisible) {
+        btn.innerText = "Hide Answer (隐藏答案)";
+        [...item.c].forEach((char, i) => {
+            const target = document.getElementById(`writer-target-${i}`);
+            target.innerHTML = '';
+            HanziWriter.create(target, char, { width: 220, height: 220, padding: 5, strokeColor: '#ccc' });
+        });
+    } else {
+        btn.innerText = "Show Answer (答案)";
+        [...item.c].forEach((_, i) => { document.getElementById(`writer-target-${i}`).innerHTML = ''; });
+    }
+}
+
+function initMatch() {
+    const g = document.getElementById('match-grid'); g.innerHTML = ''; selectedMatch = [];
+    const sub = [...vocabulary].sort(()=>.5-Math.random()).slice(0,4);
+    let pool = []; sub.forEach(v => { pool.push({t:v.c, id:v.c}, {t:v.p, id:v.c}, {t:v.m, id:v.c}); });
+    pool.sort(()=>.5-Math.random()).forEach(item => {
+        const d = document.createElement('div'); d.className = 'match-item'; d.innerText = item.t;
+        d.onclick = () => {
+            if(d.classList.contains('selected') || d.classList.contains('hidden')) return;
+            d.classList.add('selected'); selectedMatch.push({el:d, id:item.id});
+            if(selectedMatch.length === 3) {
+                if(selectedMatch[0].id === selectedMatch[1].id && selectedMatch[1].id === selectedMatch[2].id) {
+                    playSfx(true); speak(selectedMatch[0].id);
+                    selectedMatch.forEach(s => s.el.classList.add('hidden'));
+                } else { playSfx(false); selectedMatch.forEach(s => s.el.classList.remove('selected')); }
+                selectedMatch = [];
+                if(!document.querySelector('.match-item:not(.hidden)')) document.getElementById('feedback-box').innerText='🏮 Excellent!';
+            }
+        };
+        g.appendChild(d);
+    });
+}
+
+function checkPinyin() {
+    const input = document.getElementById('p-input').value.toLowerCase().trim();
+    const correct = vocabulary[curIdx].p.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if(input === correct) { playSfx(true); document.getElementById('feedback-box').innerText='👍 Good!'; setTimeout(nextWord, 1000); }
+    else { playSfx(false); document.getElementById('feedback-box').innerText='❌ No'; }
+}
+
+function nextWord() { curIdx = (curIdx + 1) % vocabulary.length; updateUI(); }
+
+function renderList() {
+    document.getElementById('list-view').innerHTML = vocabulary.map(v => `
+        <div class="list-card" onclick="speak('${v.c}')">
+            <b style="font-size:1.5rem;">${v.c}</b>
+            <div style="display:flex; flex-direction:column;">
+                <span style="color:var(--pinyin-red); font-weight:bold; font-size:1rem;">${v.p}</span>
+                <small style="color:#666;">${v.m}</small>
+            </div>
+        </div>`).join('');
+}
+
+window.onload = () => switchMode('learn');
+</script>
+</body>
+</html>
