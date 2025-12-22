@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+    <title>XUSFUNCHINESE - HSK1 Writing Mode 🏮</title>
+    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+    <style>
+        :root { 
+            --pinyin-red: #d63031; 
+            --paper: rgba(255, 255, 255, 0.95); 
+            --gold: #fbc02d; 
+            --accent: #218c74; 
+            --primary: #01579b;
+            --night-sky: radial-gradient(circle at center, #001f3f 0%, #000510 100%);
+        }
+        body { 
+            margin: 0; font-family: "Arial Black", sans-serif; 
+            background: linear-gradient(135deg, #0277bd 0%, #002f6c 100%); 
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative;
+        }
+        #cover-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--night-sky); z-index: 5000; display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; transition: opacity 0.5s;
+        }
+        .star {
+            position: absolute; top: 50%; left: 50%; width: 2px; height: 2px;
+            background: white; border-radius: 50%; animation: shoot linear infinite;
+        }
+        @keyframes shoot {
+            0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(1000px); opacity: 0; width: 100px; }
+        }
+        #app-container { 
+            width: 96vw; height: 92vh; background: var(--paper); 
+            display: flex; margin: auto; border: 6px double var(--primary); 
+            border-radius: 20px; overflow: hidden; z-index: 10;
+        }
+        .sidebar { width: 160px; background: rgba(255,255,255,0.9); border-right: 2px solid var(--primary); display: flex; flex-direction: column; }
+        .sidebar button { padding: 12px; border: none; background: none; font-size: 0.9rem; font-weight: bold; color: var(--primary); cursor: pointer; border-bottom: 1px solid #eee; text-align: left; }
+        .sidebar button.active { background: var(--primary); color: white; }
+        .sidebar-watermark { margin-top: auto; padding-bottom: 10px; text-align: center; font-size: 10px; color: var(--primary); opacity: 0.5; font-weight: bold; }
+        .content { flex: 1; padding: 10px; display: flex; flex-direction: column; align-items: center; overflow-y: auto; position: relative; }
+        #feedback-box { font-size: 2rem; height: 1.2em; color: var(--accent); font-weight: bold; }
+        .grid-flex { display: flex; gap: 10px; margin: 5px 0; flex-wrap: wrap; justify-content: center; }
+        .tian-wrapper { position: relative; width: 180px; height: 180px; background: #fff; border: 2px solid #8b4513; }
+        .tianzige { position: absolute; width: 100%; height: 100%; pointer-events: none; opacity: 0.2; background: linear-gradient(45deg, transparent 49%, red 50%, transparent 51%), linear-gradient(-45deg, transparent 49%, red 50%, transparent 51%), linear-gradient(to right, transparent 49%, red 50%, transparent 51%), linear-gradient(to bottom, transparent 49%, red 50% ,transparent 51%); }
+        .writer-div { position: absolute; top:0; left:0; width:100%; height:100%; }
+        canvas { position: absolute; top:0; left:0; z-index: 5; touch-action: none; }
+        .btn { padding: 10px 20px; border-radius: 20px; border: none; cursor: pointer; background: var(--primary); color: #fff; font-weight: bold; margin: 5px; }
+        #match-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 95%; }
+        .match-item { background: #fff; padding: 10px; border: 2px solid var(--primary); border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.9rem; min-height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold;}
+        .match-item.selected { background: var(--primary); color: white; }
+        .match-item.hidden { visibility: hidden; }
+        #list-view, #wrong-view { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 95%; }
+        .list-card { background:#fff; padding:10px; border-radius:8px; border:1px solid #ddd; display:flex; align-items:center; gap:10px; cursor:pointer; }
+        #result-screen { text-align: center; padding: 20px; display: none; }
+    </style>
+</head>
+<body>
+
+<div id="cover-page" onclick="enterApp()">
+    <div id="star-container"></div>
+    <div style="text-align:center; color:white; z-index:10;">
+        <h1 style="font-size:5vw; margin:0;">50 HANZI (1)</h1>
+        <h2 style="color:var(--gold); font-size:6vw; margin:0;">HSK 1</h2>
+        <p style="letter-spacing:2px; margin-top:20px;">CLICK TO START</p>
+    </div>
+</div>
+
+<div id="app-container">
+    <div class="sidebar">
+        <button id="n-learn" class="active" onclick="switchMode('learn')">📖 Study</button>
+        <button id="n-write" onclick="switchMode('write')">✍️ Dictation</button>
+        <button id="n-match" onclick="switchMode('match')">🧩 Matching</button>
+        <button id="n-pinyin" onclick="switchMode('pinyin')">⌨️ Pinyin</button>
+        <button id="n-list" onclick="switchMode('list')">📜 Word List</button>
+        <button id="n-wrong" onclick="switchMode('wrong')" style="color:#d32f2f;">❌ Mistake</button>
+        <div class="sidebar-watermark">© XUSFUNCHINESE</div>
+    </div>
+    <div class="content">
+        <div id="feedback-box"></div>
+        <div id="mode-learn" class="view" style="display:flex; flex-direction:column; align-items:center;">
+            <div id="s-pinyin" style="color:var(--pinyin-red); font-size:2rem; font-weight:bold;"></div>
+            <div id="s-mean" style="font-size:1.2rem; color:#444;"></div>
+            <div id="s-grids" class="grid-flex"></div>
+            <button class="btn" onclick="nextWord()">Next</button>
+        </div>
+        <div id="mode-write" class="view" style="display:none; flex-direction:column; align-items:center;">
+            <div id="w-mean" style="font-size:1.8rem; font-weight:bold; color:var(--pinyin-red);"></div>
+            <div id="w-grids" class="grid-flex"></div>
+            <div>
+                <button id="ans-btn" class="btn" style="background:var(--gold); color:var(--primary)" onclick="handleAnswer()">Show Answer</button>
+                <button class="btn" onclick="nextWord()">Next</button>
+            </div>
+        </div>
+        <div id="mode-match" class="view" style="display:none; width:100%">
+            <div id="match-grid"></div>
+            <div style="text-align:center; margin-top:10px;">
+                <div id="match-progress" style="font-weight:bold; color:var(--primary);"></div>
+                <button class="btn" onclick="resetMatchGame()">Reset</button>
+            </div>
+        </div>
+        <div id="mode-pinyin" class="view" style="display:none; flex-direction:column; align-items:center;">
+            <h1 id="p-char" style="font-size:5rem; margin:10px;"></h1>
+            <input type="text" id="p-input" placeholder="pinyin" style="padding:10px; font-size:1.5rem; text-align:center; width:200px; border:2px solid var(--primary); border-radius:10px;">
+            <button class="btn" style="margin-top:15px;" onclick="checkPinyin()">Check</button>
+        </div>
+        <div id="mode-list" class="view" style="display:none; width:100%"><div id="list-view"></div></div>
+        <div id="mode-wrong" class="view" style="display:none; width:100%"><div id="wrong-view"></div></div>
+        <div id="result-screen">
+            <h2 id="result-text" style="color:var(--primary)"></h2>
+            <p>Please subscribe to "Xu's Fun Chinese" on Youtube!</p>
+            <button class="btn" onclick="switchMode('learn')">Restart</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const vocabulary = [
+    {c:"我", p:"wǒ", m:"I / me", e:"🙋"}, {c:"你", p:"nǐ", m:"you", e:"👋"}, {c:"他", p:"tā", m:"he", e:"👨"}, {c:"她", p:"tā", m:"she", e:"👩"}, {c:"我们", p:"wǒmen", m:"we", e:"👫"},
+    {c:"好", p:"hǎo", m:"good", e:"👍"}, {c:"是", p:"shì", m:"to be / yes", e:"✅"}, {c:"不", p:"bù", m:"not", e:"❌"}, {c:"谢谢", p:"xièxie", m:"thanks", e:"🙏"}, {c:"不客气", p:"búkèqi", m:"welcome", e:"😇"},
+    {c:"再见", p:"zàijiàn", m:"goodbye", e:"👋"}, {c:"请", p:"qǐng", m:"please", e:"🥺"}, {c:"对不起", p:"duìbuqǐ", m:"sorry", e:"🙇"}, {c:"没关系", p:"méiguānxi", m:"it's okay", e:"😊"}, {c:"老师", p:"lǎoshī", m:"teacher", e:"👨‍🏫"},
+    {c:"学生", p:"xuésheng", m:"student", e:"🧑‍🎓"}, {c:"朋友", p:"péngyou", m:"friend", e:"👬"}, {c:"医生", p:"yīshēng", m:"doctor", e:"👨‍⚕️"}, {c:"中国", p:"zhōngguó", m:"China", e:"🇨🇳"}, {c:"北京", p:"běijīng", m:"Beijing", e:"⛩️"},
+    {c:"家", p:"jiā", m:"home", e:"🏠"}, {c:"学校", p:"xuéxiào", m:"school", e:"🏫"}, {c:"饭馆", p:"fànguǎn", m:"restaurant", e:"🍱"}, {c:"商店", p:"shāngdiàn", m:"shop", e:"🏪"}, {c:"医院", p:"yīyuàn", m:"hospital", e:"🏥"},
+    {c:"火车站", p:"huǒchēzhàn", m:"station", e:"🚉"}, {c:"爸爸", p:"bàba", m:"dad", e:"👨"}, {c:"妈妈", p:"māma", m:"mom", e:"👩"}, {c:"儿子", p:"érzi", m:"son", e:"👦"}, {c:"女儿", p:"nǚ'ér", m:"daughter", e:"👧"},
+    {c:"现在", p:"xiànzài", m:"now", e:"🕒"}, {c:"今天", p:"jīntiān", m:"today", e:"📅"}, {c:"明天", p:"míngtiān", m:"tomorrow", e:"🌅"}, {c:"昨天", p:"zuótiān", m:"yesterday", e:"🌇"}, {c:"月", p:"yuè", m:"month", e:"🌙"},
+    {c:"号", p:"hào", m:"date", e:"📅"}, {c:"点", p:"diǎn", m:"o'clock", e:"⏰"}, {c:"钱", p:"qián", m:"money", e:"💰"}, {c:"水", p:"shuǐ", m:"water", e:"💧"}, {c:"茶", p:"chá", m:"tea", e:"🍵"},
+    {c:"米饭", p:"mǐfàn", m:"rice", e:"🍚"}, {c:"水果", p:"shuǐguǒ", m:"fruit", e:"🍎"}, {c:"苹果", p:"píngguǒ", m:"apple", e:"🍎"}, {c:"衣服", p:"yīfu", m:"clothes", e:"👕"}, {c:"杯子", p:"bēizi", m:"cup", e:"🥛"},
+    {c:"书", p:"shū", m:"book", e:"📖"}, {c:"桌子", p:"zhuōzi", m:"table", e:"🪵"}, {c:"椅子", p:"yǐzi", m:"chair", e:"🪑"}, {c:"猫", p:"māo", m:"cat", e:"🐱"}, {c:"狗", p:"gǒu", m:"dog", e:"🐶"}
+];
+
+let curIdx = 0, writers = [], ansShow = false, wrongAnswers = [];
+let matchPool = [], matchedCount = 0, selectedMatch = [];
+
+function cleanup() {
+    writers.forEach(w => { if(w && w.destroy) w.destroy(); });
+    writers = [];
+    document.getElementById('s-grids').innerHTML = '';
+    document.getElementById('w-grids').innerHTML = '';
+}
+
+function switchMode(m, idx = 0) {
+    cleanup();
+    document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
+    if(document.getElementById('n-'+m)) document.getElementById('n-'+m).classList.add('active');
+    document.querySelectorAll('.view, #result-screen').forEach(v => v.style.display = 'none');
+    
+    const target = document.getElementById('mode-'+m);
+    if(target) target.style.display = (['list', 'match', 'wrong'].includes(m)) ? 'block' : 'flex';
+    
+    curIdx = idx;
+    requestAnimationFrame(() => {
+        if(m==='list') renderList();
+        else if(m==='match') resetMatchGame();
+        else if(m==='wrong') renderWrong();
+        else updateUI();
+    });
+}
+
+function updateUI() {
+    const item = vocabulary[curIdx];
+    document.getElementById('feedback-box').innerText = '';
+    const isLearn = document.getElementById('mode-learn').style.display !== 'none';
+    const isWrite = document.getElementById('mode-write').style.display !== 'none';
+
+    if(isLearn) {
+        document.getElementById('s-pinyin').innerText = item.p;
+        document.getElementById('s-mean').innerText = item.m;
+        [...item.c].forEach((char, i) => {
+            const wrap = createGrid(char, 'study', i);
+            document.getElementById('s-grids').appendChild(wrap);
+            const w = HanziWriter.create(wrap.querySelector('.writer-div'), char, { width:180, height:180, padding:5, strokeColor:'#2f3542' });
+            writers.push(w);
+            wrap.onclick = () => { speak(char); w.animateCharacter(); };
+        });
+    }
+
+    if(isWrite) {
+        document.getElementById('w-mean').innerText = item.m;
+        ansShow = false; document.getElementById('ans-btn').innerText = "Show Answer";
+        [...item.c].forEach((char, i) => {
+            const wrap = createGrid(char, 'write', i);
+            document.getElementById('w-grids').appendChild(wrap);
+            initCanvas(wrap.querySelector('canvas'));
+        });
+    }
+    document.getElementById('p-char').innerText = item.c;
+    document.getElementById('p-input').value = '';
+}
+
+function createGrid(char, mode, idx) {
+    const w = document.createElement('div'); w.className = 'tian-wrapper';
+    w.innerHTML = `<div class="tianzige"></div><div class="writer-div"></div>`;
+    if(mode === 'write') w.innerHTML += `<canvas width="180" height="180"></canvas>`;
+    return w;
+}
+
+function initCanvas(can) {
+    const ctx = can.getContext('2d');
+    let drawing = false; ctx.strokeStyle = "red"; ctx.lineWidth = 10; ctx.lineCap = "round";
+    const getP = (e) => { 
+        const r = can.getBoundingClientRect(); 
+        const t = e.touches ? e.touches[0] : e;
+        return { x: t.clientX - r.left, y: t.clientY - r.top };
+    };
+    can.ontouchstart = (e) => { e.preventDefault(); drawing = true; const p = getP(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+    can.ontouchmove = (e) => { if(!drawing) return; const p = getP(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+    can.ontouchend = () => { drawing = false; };
+}
+
+function handleAnswer() {
+    ansShow = !ansShow;
+    const item = vocabulary[curIdx];
+    document.getElementById('ans-btn').innerText = ansShow ? "Hide Answer" : "Show Answer";
+    const grids = document.querySelectorAll('#w-grids .writer-div');
+    grids.forEach((g, i) => {
+        g.innerHTML = '';
+        if(ansShow) HanziWriter.create(g, item.c[i], { width: 180, height: 180, padding: 5, strokeColor: '#ccc' });
+    });
+}
+
+function resetMatchGame() {
+    matchPool = [...vocabulary].sort(() => 0.5 - Math.random());
+    matchedCount = 0;
+    initMatchRound();
+}
+
+function initMatchRound() {
+    const g = document.getElementById('match-grid'); g.innerHTML = ''; selectedMatch = [];
+    document.getElementById('match-progress').innerText = `Progress: ${matchedCount}/50`;
+    const roundItems = matchPool.slice(0, 4);
+    if(!roundItems.length) { showFinal(); return; }
+    let items = [];
+    roundItems.forEach(v => {
+        items.push({t: v.c, id: v.c}, {t: v.p, id: v.c}, {t: v.m, id: v.c});
+    });
+    items.sort(() => 0.5 - Math.random()).forEach(it => {
+        const d = document.createElement('div'); d.className = 'match-item'; d.innerText = it.t;
+        d.onclick = () => {
+            if(d.classList.contains('selected') || d.classList.contains('hidden')) return;
+            d.classList.add('selected'); selectedMatch.push({el: d, id: it.id});
+            if(selectedMatch.length === 3) {
+                if(selectedMatch[0].id === selectedMatch[1].id && selectedMatch[1].id === selectedMatch[2].id) {
+                    speak(selectedMatch[0].id);
+                    selectedMatch.forEach(s => s.el.classList.add('hidden'));
+                    if(!document.querySelector('.match-item:not(.hidden)')) {
+                        matchedCount += roundItems.length;
+                        matchPool.splice(0, 4);
+                        setTimeout(initMatchRound, 500);
+                    }
+                } else { selectedMatch.forEach(s => s.el.classList.remove('selected')); }
+                selectedMatch = [];
+            }
+        };
+        g.appendChild(d);
+    });
+}
+
+function checkPinyin() {
+    const input = document.getElementById('p-input').value.toLowerCase().trim();
+    const correct = vocabulary[curIdx].p.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if(input === correct) {
+        document.getElementById('feedback-box').innerText='👍 Good!';
+        setTimeout(() => { if(curIdx >= 49) showFinal(); else nextWord(); }, 800);
+    } else {
+        document.getElementById('feedback-box').innerText='❌ Wrong';
+        if(!wrongAnswers.includes(vocabulary[curIdx])) wrongAnswers.push(vocabulary[curIdx]);
+    }
+}
+
+function nextWord() { curIdx = (curIdx + 1) % 50; cleanup(); updateUI(); }
+
+function showFinal() {
+    document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+    document.getElementById('result-screen').style.display = 'block';
+    const praises = ["太棒了！", "你真厉害！", "非常出色！", "好极了！"];
+    const text = praises[Math.floor(Math.random()*praises.length)];
+    document.getElementById('result-text').innerText = text;
+    speak(text);
+}
+
+function renderList() {
+    document.getElementById('list-view').innerHTML = vocabulary.map((v, i) => `
+        <div class="list-card" onclick="switchMode('learn', ${i})">
+            <b style="font-size:1.5rem;">${v.c}</b>
+            <div><span style="color:var(--pinyin-red); font-weight:bold;">${v.p}</span><br><small>${v.m}</small></div>
+        </div>`).join('');
+}
+
+function renderWrong() {
+    const container = document.getElementById('wrong-view');
+    if(!wrongAnswers.length) { container.innerHTML = "<p style='text-align:center;'>No mistakes!</p>"; return; }
+    container.innerHTML = wrongAnswers.map(v => {
+        const idx = vocabulary.findIndex(it => it.c === v.c);
+        return `<div class="list-card" onclick="switchMode('learn', ${idx})"><b>${v.c}</b><div><span>${v.p}</span><br><small>${v.m}</small></div></div>`;
+    }).join('');
+}
+
+function speak(t) { 
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const m = new SpeechSynthesisUtterance(t); 
+        m.lang = 'zh-CN'; 
+        m.rate = 0.8; 
+        window.speechSynthesis.speak(m); 
+    }
+}
+
+function enterApp() { 
+    document.getElementById('cover-page').style.opacity = '0'; 
+    setTimeout(() => { 
+        document.getElementById('cover-page').style.display = 'none'; 
+        switchMode('learn'); 
+    }, 500); 
+}
+
+window.onload = () => {
+    const container = document.getElementById('star-container');
+    for(let i=0; i<50; i++) {
+        let s = document.createElement('div'); s.className = 'star';
+        s.style.setProperty('--angle', Math.random() * 360 + 'deg');
+        s.style.animationDuration = Math.random() * 1 + 1 + 's';
+        container.appendChild(s);
+    }
+};
+</script>
+</body>
+</html>
