@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Textbook vs Real-life Expressions!</title>
+    <style>
+        :root {
+            --std: #4a90e2; --col: #f5a623; --pinyin: #d0021b; 
+            --reply: #673ab7; --bg: #f8f9fa; --success: #4caf50; --gold: #fbc02d;
+            --night-sky: radial-gradient(circle at center, #001f3f 0%, #000510 100%);
+        }
+        body { margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); touch-action: manipulation; overflow-x: hidden; }
+        
+        /* 金光流星封面 */
+        #cover-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--night-sky); z-index: 9999; display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+        }
+        .star {
+            position: absolute; top: 50%; left: 50%; width: 2px; height: 2px;
+            background: white; border-radius: 50%; box-shadow: 0 0 10px #fff;
+            animation: shoot linear infinite;
+        }
+        @keyframes shoot {
+            0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(1000px); opacity: 0; width: 160px; }
+        }
+        .cover-content { text-align: center; z-index: 10; padding: 20px; pointer-events: none; }
+        .cover-title { font-size: 8vw; color: var(--gold); line-height: 1.1; margin: 0; font-weight: 900; text-shadow: 0 0 30px rgba(251,192,45,0.8); }
+        .cover-subtitle { font-size: 4vw; color: white; margin-top: 15px; font-weight: bold; letter-spacing: 2px; }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.05); } }
+
+        /* 导航与主布局 */
+        nav { background: white; padding: 10px; display: flex; justify-content: center; gap: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        nav button { padding: 10px 18px; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: bold; background: #eee; transition: 0.3s; }
+        nav button.active-tab { background: var(--std); color: white; }
+
+        main { padding: 15px; max-width: 800px; margin: 0 auto; min-height: 100vh; }
+        .view { display: none; }
+        .view.active { display: block; }
+
+        .card-wrap { background: white; border-radius: 24px; padding: 20px; margin-bottom: 30px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); border: 1px solid #f0f0f0; animation: fadeIn 0.5s; }
+        .box { margin-bottom: 12px; padding: 16px; border-radius: 18px; cursor: pointer; transition: 0.2s; border-left: 8px solid #ddd; position: relative; }
+        .box:active { transform: scale(0.98); }
+        .std-box { border-color: var(--std); background: #f0f7ff; }
+        .col-box { border-color: var(--col); background: #fff8ee; }
+        .reply-box { border-color: var(--reply); background: #f3eaff; display: none; margin-top: 10px; animation: slideIn 0.3s ease-out; }
+
+        ruby { font-size: 26px; font-weight: 700; line-height: 2.4; margin-right: 4px; }
+        rt { font-size: 13px; color: var(--pinyin); font-weight: bold; }
+        .eng-sub { display: block; font-size: 15px; color: #555; font-style: italic; margin-top: 5px; border-top: 1px dashed #ccc; padding-top: 5px; }
+
+        .btn-reply { width: 100%; padding: 12px; border: 2px dashed var(--reply); border-radius: 15px; background: none; color: var(--reply); font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn-reply:hover { background: var(--reply); color: white; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+    </style>
+</head>
+<body>
+
+<div id="cover-page" onclick="enterApp()">
+    <div id="star-container"></div>
+    <div class="cover-content">
+        <h1 class="cover-title">Textbook vs Real-life Expressions!</h1>
+        <div class="cover-subtitle">SPEAK CHINESE LIKE A NATIVE</div>
+        <p style="color:var(--gold); margin-top:40px; font-weight:bold; animation: pulse 1.2s infinite; font-size: 22px;">[ TAP TO START ]</p>
+    </div>
+</div>
+
+<nav>
+    <button id="tab-study" class="active-tab" onclick="showTab('study')">📖 Study</button>
+    <button id="tab-list" onclick="showTab('list')">📜 Bank</button>
+    <button id="tab-quiz" onclick="showTab('quiz')">⚡ Rush</button>
+</nav>
+
+<main>
+    <div id="view-study" class="view active"></div>
+    <div id="view-list" class="view"></div>
+    <div id="view-quiz" class="view" style="text-align: center;">
+        <div id="timer" style="font-size: 40px; color: var(--pinyin); font-weight: 900; margin-bottom: 20px;">30s</div>
+        <div id="quiz-card"></div>
+        <div id="quiz-options"></div>
+    </div>
+</main>
+
+<script>
+    const data = [
+        { st: "请问您贵姓？", stp: "qǐng wèn nín guì xìng", ste: "What's your surname?", cl: "怎么称呼您？", clp: "zěn me chēng hu nín", cle: "How should I call you?", cr: "叫我老王就行。", crp: "jiào wǒ lǎo wáng jiù xíng", cre: "Just call me Lao Wang." },
+        { st: "希望能与您合作。", stp: "xī wàng néng yǔ nín hé zuò", ste: "Hope to cooperate.", cl: "加个微信吧。", clp: "jiā ge wēi xìn ba", cle: "Let's add WeChat.", cr: "行，我扫你吧。", crp: "xíng , wǒ sǎo nǐ ba", cre: "Sure, I'll scan you." },
+        { st: "我们去吃饭吧？", stp: "wǒ men qù chī fàn ba", ste: "Shall we go eat?", cl: "走，干饭去！", clp: "zǒu , gàn fàn qù", cle: "Let's go grab food!", cr: "走起，饿死了。", crp: "zǒu qǐ , è sǐ le", cre: "Let's go, I'm starving." },
+        { st: "您去哪儿？", stp: "nín qù nǎ r", ste: "Where are you going?", cl: "去哪儿混呀？", clp: "qù nǎ r hùn ya", cle: "Where are you heading?", cr: "公司加班，命苦。", crp: "gōng sī jiā bān , mìng kǔ", cre: "Office overtime, so unlucky." },
+        { st: "太感谢你了。", stp: "tài gǎn xiè nǐ le", ste: "Thank you so much.", cl: "谢了啊，够意思！", clp: "xiè le a , gòu yì si", cle: "Thanks! You're real!", cr: "小事儿，客气啥。", crp: "xiǎo shìr , kè qi shá", cre: "Small thing, don't mention it." },
+        { st: "对不起，我迟到了。", stp: "duì bù qǐ , wǒ chí dào le", ste: "Sorry for being late.", cl: "抱歉，路上堵死了。", clp: "bào qiàn , lù shang dǔ sǐ le", cle: "Sorry, traffic was deadly.", cr: "没事，我也刚到。", crp: "méi shì , wǒ yě gāng dào", cre: "It's fine, I just got here." },
+        { st: "那个东西多少钱？", stp: "nà ge dōng xi duō shao qián", ste: "How much is that?", cl: "这怎么卖？", clp: "zhè zěn me mài", cle: "How is this sold?", cr: "给十块拿走吧。", crp: "gěi shí kuài ná zǒu ba", cre: "Give me 10 and take it." },
+        { st: "再见，我走了。", stp: "zài jiàn , wǒ zǒu le", ste: "Goodbye, I'm going.", cl: "先溜了，回见！", clp: "xiān liū le , huí jiàn", cle: "Slipping away now, see ya!", cr: "行，路上慢点儿。", crp: "xíng , lù shang màn diǎnr", cre: "OK, take it easy on the way." },
+        { st: "你明白了吗？", stp: "nǐ míng bai le ma", ste: "Do you understand?", cl: "懂我意思吗？", clp: "nǐ dǒng wǒ yì si ma", cle: "You get my point?", cr: "秒懂。", crp: "miǎo dǒng", cre: "Got it instantly." },
+        { st: "你在做什么？", stp: "nǐ zài zuò shén me", ste: "What are you doing?", cl: "忙啥呢？", clp: "máng shá ne", cle: "What's up?", cr: "瞎忙，没干啥。", crp: "xiā máng , méi gàn shá", cre: "Just busy with nothing." },
+        { st: "这天气太热了。", stp: "zhè tiān qì tài rè le", ste: "Weather is too hot.", cl: "这天儿要热疯了。", clp: "zhè tiānr yào rè fēng le", cle: "It's insanely hot.", cr: "就是，不想出门。", crp: "jiù shì , bù xiǎng chū mén", cre: "Exactly, don't want to go out." },
+        { st: "我要去睡觉了。", stp: "wǒ yào qù shuì jiào le", ste: "I'm going to sleep.", cl: "我不行了，先眯会儿。", clp: "wǒ bù xíng le , xiān mī huìr", cle: "I'm exhausted, gonna nap.", cr: "去吧，晚安。", crp: "qù ba , wǎn ān", cre: "Go ahead, night." },
+        { st: "你最近很努力。", stp: "nǐ zuì jìn hěn nǔ lì", ste: "You work hard lately.", cl: "你最近太卷了。", clp: "nǐ zuì jìn tài juǎn le", cle: "You're too 'involution'.", cr: "没办法，为了生活。", crp: "méi bàn fǎ , wèi le shēng huó", cre: "No choice, just for life." },
+        { st: "我不喜欢那个人。", stp: "wǒ bù xǐ huan nà ge rén", ste: "I don't like him.", cl: "那人真让人下头。", clp: "nà rén zhēn ràng rén xià tóu", cle: "That guy is such a turn-off.", cr: "离他远点儿。", crp: "lí tā yuǎn diǎnr", cre: "Stay away from him." },
+        { st: "这件事情很难办。", stp: "zhè jiàn shì jing hěn nán bàn", ste: "This is hard to do.", cl: "这事儿挺棘手的。", clp: "zhè shìr tǐng jí shǒu de", cle: "This is tricky.", cr: "我找人搞定它。", crp: "wǒ zhǎo rén gǎo dìng tā", cre: "I'll find someone to fix it." },
+        { st: "请帮我一下。", stp: "qǐng bāng wǒ yí xià", ste: "Please help me.", cl: "搭把手呗？", clp: "dā bǎ shǒu bei", cle: "Give me a hand?", cr: "来喽，等我一下。", crp: "lái lou , děng wǒ yí xià", cre: "Coming, wait for me." },
+        { st: "那个电影很好看。", stp: "nà ge diàn yǐng hěn hǎo kàn", ste: "That movie is good.", cl: "那片子绝了！", clp: "nà piàn zi jué le", cle: "That movie is amazing!", cr: "我也觉得，看了两遍。", crp: "wǒ yě jué de , kàn le liǎng biàn", cre: "Me too, watched it twice." },
+        { st: "我不去了。", stp: "wǒ bú qù le", ste: "I'm not going.", cl: "我还是躺平吧。", clp: "wǒ hái shi tǎng píng ba", cle: "I'll just lie flat/chill.", cr: "真懒，走不动了？", crp: "zhēn lǎn , zǒu bú dòng le", cre: "So lazy, can't walk?" },
+        { st: "他在说别人的事。", stp: "tā zài shuō bié rén de shì", ste: "He is gossiping.", cl: "他在那儿吃瓜呢。", clp: "tā zài nà r chī guā ne", cle: "He's eating popcorn/gossiping.", cr: "我也想听听。", crp: "wǒ yě xiǎng tīng tīng", cre: "I want to hear too." },
+        { st: "你想吃什么？", stp: "nǐ xiǎng chī shén me", ste: "What to eat?", cl: "安排点儿啥好吃的？", clp: "ān pái diǎnr shá hǎo chī de", cle: "What tasty food arrange?", cr: "火锅怎么样？", crp: "huǒ guō zěn me yàng", cre: "How about Hotpot?" },
+        { st: "我没有钱。", stp: "wǒ méi yǒu qián", ste: "I have no money.", cl: "我口袋比脸干净。", clp: "wǒ kǒu dài bǐ liǎn gān jìng", cle: "Broke as hell.", cr: "我也吃土好几天了。", crp: "wǒ yě chī tǔ hǎo jǐ tiān le", cre: "I've been 'eating dirt' too." },
+        { st: "他在骗你。", stp: "tā zài piàn nǐ", ste: "He is lying to you.", cl: "他在忽悠你。", clp: "tā zài hū yu nǐ", cle: "He is fooling you.", cr: "早就看穿他了。", crp: "zǎo jiù kàn chuān tā le", cre: "Saw through him long ago." },
+        { st: "没戏，想都别想。", stp: "méi xì , xiǎng dōu bié xiǎng", ste: "No chance at all.", cl: "这事儿悬了。", clp: "zhè shìr xuán le", cle: "This is up in the air.", cr: "不一定，再试试。", crp: "bù yí dìng , zài shì shi", cre: "Not sure, try again." },
+        { st: "这工作我不做了。", stp: "zhè gōng zuò wǒ bú zuò le", ste: "I quit this job.", cl: "我不干了，撤！", clp: "wǒ bù gàn le , chè", cle: "I'm done, withdrawing!", cr: "有志气，去哪儿混？", crp: "yǒu zhì qì , qù nǎ r hùn", cre: "Good for you, where next?" },
+        { st: "你说的话很对。", stp: "nǐ shuō de huà hěn duì", ste: "You are right.", cl: "真相了，家人！", clp: "zhēn xiàng le , jiā rén", cle: "That's the truth, fam!", cr: "这就是现实啊。", crp: "zhè jiù shì xiàn shí a", cre: "That's just reality." },
+        { st: "他是个好人。", stp: "tā shì ge hǎo rén", ste: "He is a good man.", cl: "他这人挺靠谱的。", clp: "tā zhè rén tǐng kào pǔ de", cle: "He is quite reliable.", cr: "确实，大家都信他。", crp: "què shí , dà jiā dōu xìn tā", cre: "Indeed, everyone trusts him." },
+        { st: "我不建议你买。", stp: "wǒ bù jiàn yì nǐ mǎi", ste: "I don't suggest buying.", cl: "听我的，赶紧避雷。", clp: "tīng wǒ de , gǎn jǐn bì léi", cle: "Listen to me, avoid it!", cr: "好吧，差评那么多。", crp: "hǎo ba , chà píng nà me duō", cre: "Fine, so many bad reviews." },
+        { st: "他在承诺空话。", stp: "tā zài chéng nuò kōng huà", ste: "He's making empty promises.", cl: "他又在画饼了。", clp: "tā yòu zài huà bǐng le", cle: "He's painting a pie (lying).", cr: "习惯了，别当真。", crp: "xí guàn le , bié dàng zhēn", cre: "Used to it, don't take it seriously." },
+        { st: "这事儿我不强求。", stp: "zhè shìr wǒ bù qiǎng qiú", ste: "I won't force this.", cl: "随缘吧，我很佛系。", clp: "suí yuán ba , wǒ hěn fó xì", cle: "Let it be, I'm chill/Zen.", cr: "这种心态挺好的。", crp: "zhè zhǒng xīn tài tǐng hǎo de", cre: "This mindset is good." },
+        { st: "我很不舒服。", stp: "wǒ hěn bù shū fu", ste: "I'm not feeling well.", cl: "我整个人都垮了。", clp: "wǒ zhěng gè rén dōu kuǎ le", cle: "My whole body is falling apart.", cr: "赶紧回家躺着。", crp: "gǎn jǐn huí jiā tǎng zhe", cre: "Go home and lie down ASAP." }
+    ];
+
+    function initStars() {
+        const container = document.getElementById('star-container');
+        container.innerHTML = "";
+        for(let i=0; i<60; i++) {
+            let s = document.createElement('div'); s.className = 'star';
+            s.style.setProperty('--angle', Math.random() * 360 + 'deg');
+            s.style.animationDuration = Math.random() * 2 + 1 + 's';
+            s.style.left = Math.random() * 100 + "%";
+            s.style.top = Math.random() * 100 + "%";
+            container.appendChild(s);
+        }
+    }
+
+    function enterApp() {
+        const cp = document.getElementById('cover-page');
+        cp.style.transform = "translateY(-100%)";
+        cp.style.opacity = "0";
+        setTimeout(() => { 
+            cp.style.display = 'none'; 
+            renderStudy(); 
+        }, 600);
+    }
+
+    function renderPhrase(txt, py) {
+        const chars = txt.split('');
+        const pys = py.split(' ');
+        let html = ""; let pIdx = 0;
+        chars.forEach(c => {
+            if(/[\u4e00-\u9fa5]/.test(c)) {
+                html += `<ruby>${c}<rt>${pys[pIdx] || ''}</rt></ruby>`; pIdx++;
+            } else if (c !== " "){
+                html += `<span style="font-size:26px; vertical-align:top; line-height:2.4;">${c}</span>`;
+            }
+        });
+        return html;
+    }
+
+    function speak(text) {
+        window.speechSynthesis.cancel();
+        const m = new SpeechSynthesisUtterance(text.replace(/点儿/g, '点儿').replace(/哪儿/g, '哪儿').replace(/事儿/g, '事儿'));
+        m.lang = 'zh-CN'; m.rate = 0.9;
+        window.speechSynthesis.speak(m);
+    }
+
+    function showTab(t) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active-tab'));
+        document.getElementById('view-'+t).classList.add('active');
+        document.getElementById('tab-'+t).classList.add('active-tab');
+        if(t === 'study') renderStudy();
+        if(t === 'list') renderList();
+        if(t === 'quiz') initQuiz();
+    }
+
+    function renderStudy() {
+        const container = document.getElementById('view-study');
+        container.innerHTML = "";
+        data.forEach((item, i) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'card-wrap';
+            wrap.innerHTML = `
+                <div class="box std-box" onclick="speak('${item.st}')">
+                    <small style="color:var(--std); font-weight:bold;">[ Textbook ]</small>
+                    <div>${renderPhrase(item.st, item.stp)}</div>
+                    <span class="eng-sub">${item.ste}</span>
+                </div>
+                <div class="box col-box" onclick="speak('${item.cl}'); document.getElementById('ra-${i}').style.display='block'">
+                    <small style="color:var(--col); font-weight:bold;">[ Real Life ]</small>
+                    <div>${renderPhrase(item.cl, item.clp)}</div>
+                    <span class="eng-sub">${item.cle}</span>
+                </div>
+                <div id="ra-${i}" style="display:none;">
+                    <button class="btn-reply" onclick="toggleReply(${i}, '${item.cr}')">View Native Reply</button>
+                    <div class="box reply-box" id="rb-${i}" onclick="speak('${item.cr}')">
+                        <div>${renderPhrase(item.cr, item.crp)}</div>
+                        <span class="eng-sub">${item.cre}</span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(wrap);
+        });
+    }
+
+    function toggleReply(i, txt) {
+        const el = document.getElementById(`rb-${i}`);
+        const hide = window.getComputedStyle(el).display === 'none';
+        el.style.display = hide ? 'block' : 'none';
+        if(hide) speak(txt);
+    }
+
+    function renderList() {
+        const container = document.getElementById('view-list');
+        container.innerHTML = "<h2 style='text-align:center;'>Bank (30 Items)</h2>";
+        data.forEach(item => {
+            const row = document.createElement('div');
+            row.style = "padding:16px; background:white; margin-bottom:12px; border-radius:18px; box-shadow:0 2px 8px rgba(0,0,0,0.04); cursor:pointer;";
+            row.onclick = () => speak(item.cl);
+            row.innerHTML = `<strong>${item.cl}</strong> <span style="color:#888; font-size:14px;">(${item.cle})</span>`;
+            container.appendChild(row);
+        });
+    }
+
+    let quizTimer, timeLeft = 30;
+    function initQuiz() {
+        clearInterval(quizTimer); timeLeft = 30;
+        document.getElementById('timer').innerText = "30s";
+        nextQuiz();
+        quizTimer = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timer').innerText = timeLeft + "s";
+            if(timeLeft <= 0) { clearInterval(quizTimer); alert("Time's up!"); showTab('study'); }
+        }, 1000);
+    }
+
+    function nextQuiz() {
+        const card = document.getElementById('quiz-card');
+        const ops = document.getElementById('quiz-options');
+        const item = data[Math.floor(Math.random()*data.length)];
+        card.innerHTML = `<div class='card-wrap'><h3>Standard:</h3><p style='font-size:24px; color:var(--std);'>${item.st}</p></div>`;
+        ops.innerHTML = "";
+        let options = [item.cl];
+        while(options.length < 3) {
+            let r = data[Math.floor(Math.random()*data.length)].cl;
+            if(!options.includes(r)) options.push(r);
+        }
+        options.sort(() => Math.random() - 0.5);
+        options.forEach(opt => {
+            const b = document.createElement('button');
+            b.className = 'btn-reply'; b.style = "margin-bottom:10px; color:black; border-color:#ddd; background:white;";
+            b.innerText = opt;
+            b.onclick = () => {
+                if(opt === item.cl) { b.style.background = "#e8f5e9"; speak(opt); setTimeout(nextQuiz, 600); }
+                else { b.style.background = "#ffebee"; }
+            };
+            ops.appendChild(b);
+        });
+    }
+
+    window.onload = () => {
+        initStars();
+    };
+</script>
+</body>
+</html>
