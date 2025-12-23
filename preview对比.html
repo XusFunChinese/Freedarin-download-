@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Textbook vs Real-life Expressions!</title>
+    <style>
+        :root {
+            --std: #4a90e2; --col: #f5a623; --pinyin: #d0021b; 
+            --reply: #673ab7; --bg: #f8f9fa; --success: #4caf50; --gold: #fbc02d;
+            --night-sky: radial-gradient(circle at center, #001f3f 0%, #000510 100%);
+        }
+        body { margin: 0; font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); touch-action: manipulation; overflow-x: hidden; }
+        
+        /* 封面样式 */
+        #cover-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--night-sky); z-index: 9999; display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+        }
+        .star {
+            position: absolute; top: 50%; left: 50%; width: 2px; height: 2px;
+            background: white; border-radius: 50%; box-shadow: 0 0 10px #fff;
+            animation: shoot linear infinite;
+        }
+        @keyframes shoot {
+            0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(1000px); opacity: 0; width: 160px; }
+        }
+        .cover-content { text-align: center; z-index: 10; padding: 20px; pointer-events: none; }
+        .cover-title { font-size: 8vw; color: var(--gold); line-height: 1.1; margin: 0; font-weight: 900; text-shadow: 0 0 30px rgba(251,192,45,0.8); }
+        .cover-subtitle { font-size: 4vw; color: white; margin-top: 15px; font-weight: bold; letter-spacing: 2px; }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.05); } }
+
+        /* 导航 */
+        nav { background: white; padding: 10px; display: flex; justify-content: center; gap: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        nav button { padding: 10px 18px; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: bold; background: #eee; transition: 0.3s; }
+        nav button.active-tab { background: var(--std); color: white; }
+
+        main { padding: 15px; max-width: 800px; margin: 0 auto; min-height: 100vh; }
+        .view { display: none; }
+        .view.active { display: block; }
+
+        .card-wrap { background: white; border-radius: 24px; padding: 20px; margin-bottom: 30px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); border: 1px solid #f0f0f0; animation: fadeIn 0.5s; }
+        .box { margin-bottom: 12px; padding: 16px; border-radius: 18px; cursor: pointer; transition: 0.2s; border-left: 8px solid #ddd; }
+        .box:active { transform: scale(0.98); }
+        .std-box { border-color: var(--std); background: #f0f7ff; }
+        .col-box { border-color: var(--col); background: #fff8ee; }
+        .reply-box { border-color: var(--reply); background: #f3eaff; display: none; margin-top: 10px; animation: slideIn 0.3s ease-out; }
+
+        ruby { font-size: 26px; font-weight: 700; line-height: 2.4; margin-right: 4px; }
+        rt { font-size: 13px; color: var(--pinyin); font-weight: bold; }
+        .eng-sub { display: block; font-size: 15px; color: #555; font-style: italic; margin-top: 5px; border-top: 1px dashed #ccc; padding-top: 5px; }
+
+        .btn-reply { width: 100%; padding: 12px; border: 2px dashed var(--reply); border-radius: 15px; background: none; color: var(--reply); font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+    </style>
+</head>
+<body>
+
+<div id="cover-page" onclick="enterApp()">
+    <div id="star-container"></div>
+    <div class="cover-content">
+        <h1 class="cover-title">Textbook vs Real-life Expressions!</h1>
+        <div class="cover-subtitle">SPEAK CHINESE LIKE A NATIVE</div>
+        <p style="color:var(--gold); margin-top:40px; font-weight:bold; animation: pulse 1.2s infinite; font-size: 22px;">[ TAP TO START ]</p>
+    </div>
+</div>
+
+<nav>
+    <button id="tab-study" class="active-tab" onclick="showTab('study')">📖 Study</button>
+    <button id="tab-list" onclick="showTab('list')">📜 Bank</button>
+    <button id="tab-quiz" onclick="showTab('quiz')">⚡ Rush</button>
+</nav>
+
+<main>
+    <div id="view-study" class="view active"></div>
+    <div id="view-list" class="view"></div>
+    <div id="view-quiz" class="view" style="text-align: center;">
+        <div id="timer" style="font-size: 40px; color: var(--pinyin); font-weight: 900; margin-bottom: 20px;">30s</div>
+        <div id="quiz-card"></div>
+        <div id="quiz-options"></div>
+    </div>
+</main>
+
+<script>
+    // 精简为 5 组数据
+    const data = [
+        { st: "请问您贵姓？", stp: "qǐng wèn nín guì xìng", ste: "What's your surname?", cl: "怎么称呼您？", clp: "zěn me chēng hu nín", cle: "How should I call you?", cr: "叫我老王就行。" },
+        { st: "希望能与您合作。", stp: "xī wàng néng yǔ nín hé zuò", ste: "Hope to cooperate.", cl: "留个联系方式吧。", clp: "liú ge lián xì fāng shì ba", cle: "Let's exchange contact info.", cr: "行，我扫你微信。" },
+        { st: "您去哪儿？", stp: "nín qù nǎ r", ste: "Where are you going?", cl: "去哪儿呀？", clp: "qù nǎ r ya", cle: "Where are you heading?", cr: "回公司加班，命苦。" },
+        { st: "再见，我走了。", stp: "zài jiàn , wǒ zǒu le", ste: "Goodbye, I'm going.", cl: "先撤了，回见！", clp: "xiān chè le , huí jiàn", cle: "Withdrawing now, see ya!", cr: "行，路上慢点儿。" },
+        { st: "你说的话很对。", stp: "nǐ shuō de huà hěn duì", ste: "You are right.", cl: "原来是这个样子。", clp: "yuán lái shì zhè ge yàng zi", cle: "So that's how it is.", cr: "没错，真相了。" }
+    ];
+
+    function initStars() {
+        const container = document.getElementById('star-container');
+        for(let i=0; i<60; i++) {
+            let s = document.createElement('div'); s.className = 'star';
+            s.style.setProperty('--angle', Math.random() * 360 + 'deg');
+            s.style.animationDuration = Math.random() * 2 + 1 + 's';
+            s.style.left = Math.random() * 100 + "%";
+            s.style.top = Math.random() * 100 + "%";
+            container.appendChild(s);
+        }
+    }
+
+    function enterApp() {
+        const cp = document.getElementById('cover-page');
+        cp.style.transform = "translateY(-100%)";
+        cp.style.opacity = "0";
+        setTimeout(() => { cp.style.display = 'none'; renderStudy(); }, 600);
+    }
+
+    function renderPhrase(txt, py) {
+        if(!py) return txt;
+        const chars = txt.split('');
+        const pys = py.split(' ');
+        let html = ""; let pIdx = 0;
+        chars.forEach(c => {
+            if(/[\u4e00-\u9fa5]/.test(c)) {
+                html += `<ruby>${c}<rt>${pys[pIdx] || ''}</rt></ruby>`; pIdx++;
+            } else if (c !== " "){
+                html += `<span style="font-size:26px; vertical-align:top; line-height:2.4;">${c}</span>`;
+            }
+        });
+        return html;
+    }
+
+    function speak(text) {
+        window.speechSynthesis.cancel();
+        const m = new SpeechSynthesisUtterance(text.replace(/点儿/g, '点儿').replace(/哪儿/g, '哪儿').replace(/事儿/g, '事儿'));
+        m.lang = 'zh-CN'; m.rate = 0.9;
+        window.speechSynthesis.speak(m);
+    }
+
+    function showTab(t) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active-tab'));
+        document.getElementById('view-'+t).classList.add('active');
+        document.getElementById('tab-'+t).classList.add('active-tab');
+        if(t === 'study') renderStudy();
+        if(t === 'list') renderList();
+        if(t === 'quiz') initQuiz();
+    }
+
+    function renderStudy() {
+        const container = document.getElementById('view-study');
+        container.innerHTML = "";
+        data.forEach((item, i) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'card-wrap';
+            wrap.innerHTML = `
+                <div class="box std-box" onclick="speak('${item.st}')">
+                    <small style="color:var(--std); font-weight:bold;">[ Textbook ]</small>
+                    <div>${renderPhrase(item.st, item.stp)}</div>
+                    <span class="eng-sub">${item.ste}</span>
+                </div>
+                <div class="box col-box" onclick="speak('${item.cl}'); document.getElementById('ra-${i}').style.display='block'">
+                    <small style="color:var(--col); font-weight:bold;">[ Real Life ]</small>
+                    <div>${renderPhrase(item.cl, item.clp)}</div>
+                    <span class="eng-sub">${item.cle}</span>
+                </div>
+                <div id="ra-${i}" style="display:none;">
+                    <button class="btn-reply" onclick="toggleReply(${i}, '${item.cr}')">View Native Reply</button>
+                    <div class="box reply-box" id="rb-${i}" onclick="speak('${item.cr}')">
+                        <div>${item.cr}</div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(wrap);
+        });
+    }
+
+    function toggleReply(i, txt) {
+        const el = document.getElementById(`rb-${i}`);
+        const hide = window.getComputedStyle(el).display === 'none';
+        el.style.display = hide ? 'block' : 'none';
+        if(hide) speak(txt);
+    }
+
+    function renderList() {
+        const container = document.getElementById('view-list');
+        container.innerHTML = "<h2 style='text-align:center;'>Core Phrases</h2>";
+        data.forEach(item => {
+            const row = document.createElement('div');
+            row.style = "padding:16px; background:white; margin-bottom:12px; border-radius:18px; box-shadow:0 2px 8px rgba(0,0,0,0.04); cursor:pointer;";
+            row.onclick = () => speak(item.cl);
+            row.innerHTML = `<strong>${item.cl}</strong> <span style="color:#888; font-size:14px;">(${item.cle})</span>`;
+            container.appendChild(row);
+        });
+    }
+
+    let quizTimer, timeLeft = 30;
+    function initQuiz() {
+        clearInterval(quizTimer); timeLeft = 30;
+        document.getElementById('timer').innerText = "30s";
+        nextQuiz();
+        quizTimer = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timer').innerText = timeLeft + "s";
+            if(timeLeft <= 0) { clearInterval(quizTimer); alert("Time's up!"); showTab('study'); }
+        }, 1000);
+    }
+
+    function nextQuiz() {
+        const card = document.getElementById('quiz-card');
+        const ops = document.getElementById('quiz-options');
+        const item = data[Math.floor(Math.random()*data.length)];
+        card.innerHTML = `<div class='card-wrap'><h3>Standard:</h3><p style='font-size:24px; color:var(--std);'>${item.st}</p></div>`;
+        ops.innerHTML = "";
+        let options = [item.cl];
+        while(options.length < 3 && options.length < data.length) {
+            let r = data[Math.floor(Math.random()*data.length)].cl;
+            if(!options.includes(r)) options.push(r);
+        }
+        options.sort(() => Math.random() - 0.5);
+        options.forEach(opt => {
+            const b = document.createElement('button');
+            b.style = "width:100%; padding:15px; margin-bottom:10px; border-radius:15px; border:1px solid #ddd; background:white; font-weight:bold;";
+            b.innerText = opt;
+            b.onclick = () => {
+                if(opt === item.cl) { b.style.background = "#e8f5e9"; speak(opt); setTimeout(nextQuiz, 600); }
+                else { b.style.background = "#ffebee"; }
+            };
+            ops.appendChild(b);
+        });
+    }
+
+    window.onload = initStars;
+</script>
+</body>
+</html>
