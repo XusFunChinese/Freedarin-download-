@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+    <title>XUSFUNCHINESE - HSK3 Writing Mode 🏮</title>
+    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+    <style>
+        :root { 
+            --pinyin-red: #ff0000;
+            --paper: rgba(255, 255, 255, 0.95); 
+            --gold: #fbc02d; 
+            --accent: #218c74; 
+            --primary: #01579b;
+            --night-sky: radial-gradient(circle at center, #1a237e 0%, #000510 100%);
+        }
+        body { 
+            margin: 0; font-family: "Arial Black", sans-serif; 
+            background: linear-gradient(135deg, #1565c0 0%, #002f6c 100%); 
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative;
+        }
+        #cover-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--night-sky); z-index: 5000; display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; transition: opacity 0.5s;
+        }
+        .star {
+            position: absolute; top: 50%; left: 50%; width: 2px; height: 2px;
+            background: white; border-radius: 50%; animation: shoot linear infinite;
+        }
+        @keyframes shoot {
+            0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(1000px); opacity: 0; width: 100px; }
+        }
+        #app-container { 
+            width: 96vw; height: 92vh; background: var(--paper); 
+            display: flex; margin: auto; border: 6px double var(--primary); 
+            border-radius: 20px; overflow: hidden; z-index: 10;
+        }
+        .sidebar { width: 160px; background: rgba(255,255,255,0.9); border-right: 2px solid var(--primary); display: flex; flex-direction: column; }
+        .sidebar button { padding: 12px; border: none; background: none; font-size: 0.9rem; font-weight: bold; color: var(--primary); cursor: pointer; border-bottom: 1px solid #eee; text-align: left; }
+        .sidebar button.active { background: var(--primary); color: white; }
+        .sidebar-watermark { margin-top: auto; padding-bottom: 10px; text-align: center; font-size: 10px; color: var(--primary); opacity: 0.5; font-weight: bold; }
+        .content { flex: 1; padding: 10px; display: flex; flex-direction: column; align-items: center; overflow-y: auto; position: relative; }
+        #feedback-box { font-size: 2rem; height: 1.2em; color: var(--accent); font-weight: bold; margin-bottom: 10px; }
+        #pinyin-correct { font-size: 1.5rem; color: var(--pinyin-red); font-weight: bold; margin-top: 10px; }
+        .grid-flex { display: flex; gap: 10px; margin: 5px 0; flex-wrap: wrap; justify-content: center; }
+        .tian-wrapper { position: relative; width: 160px; height: 160px; background: #fff; border: 2px solid #8b4513; }
+        .tianzige { position: absolute; width: 100%; height: 100%; pointer-events: none; opacity: 0.2; background: linear-gradient(45deg, transparent 49%, red 50%, transparent 51%), linear-gradient(-45deg, transparent 49%, red 50%, transparent 51%), linear-gradient(to right, transparent 49%, red 50%, transparent 51%), linear-gradient(to bottom, transparent 49%, red 50% ,transparent 51%); }
+        .writer-div { position: absolute; top:0; left:0; width:100%; height:100%; }
+        canvas { position: absolute; top:0; left:0; z-index: 5; touch-action: none; }
+        .btn { padding: 10px 20px; border-radius: 20px; border: none; cursor: pointer; background: var(--primary); color: #fff; font-weight: bold; margin: 5px; }
+        #match-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: 95%; }
+        .match-item { background: #fff; padding: 10px; border: 2px solid var(--primary); border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.9rem; min-height: 50px; display: flex; align-items: center; justify-content: center; font-weight: bold;}
+        .match-item.selected { background: var(--primary); color: white; }
+        .match-item.hidden { visibility: hidden; }
+        #list-view, #wrong-view { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 95%; }
+        .list-card { background:#fff; padding:10px; border-radius:8px; border:1px solid #ddd; display:flex; align-items:center; gap:10px; cursor:pointer; }
+        #result-screen { text-align: center; padding: 20px; display: none; }
+    </style>
+</head>
+<body>
+
+<div id="cover-page" onclick="enterApp()">
+    <div id="star-container"></div>
+    <div style="text-align:center; color:white; z-index:10;">
+        <h1 style="font-size:5vw; margin:0;">300 HANZI</h1>
+        <h2 style="color:var(--gold); font-size:6vw; margin:0;">HSK 3</h2>
+        <p style="letter-spacing:2px; margin-top:20px;">CLICK TO START</p>
+    </div>
+</div>
+
+<div id="app-container">
+    <div class="sidebar">
+        <button id="n-learn" class="active" onclick="switchMode('learn')">📖 Study</button>
+        <button id="n-write" onclick="switchMode('write')">✍️ Dictation</button>
+        <button id="n-match" onclick="switchMode('match')">🧩 Matching</button>
+        <button id="n-pinyin" onclick="switchMode('pinyin')">⌨️ Pinyin</button>
+        <button id="n-list" onclick="switchMode('list')">📜 Word List</button>
+        <button id="n-wrong" onclick="switchMode('wrong')" style="color:#d32f2f;">❌ Mistake</button>
+        <div class="sidebar-watermark">© XUSFUNCHINESE</div>
+    </div>
+    <div class="content">
+        <div id="feedback-box"></div>
+        <div id="mode-learn" class="view" style="display:flex; flex-direction:column; align-items:center;">
+            <div id="s-pinyin" style="color:var(--pinyin-red); font-size:2rem; font-weight:bold;"></div>
+            <div id="s-mean" style="font-size:1.2rem; color:#444;"></div>
+            <div id="s-grids" class="grid-flex"></div>
+            <button class="btn" onclick="nextWord()">Next</button>
+        </div>
+        <div id="mode-write" class="view" style="display:none; flex-direction:column; align-items:center;">
+            <div id="w-mean" style="font-size:1.8rem; font-weight:bold; color:var(--pinyin-red);"></div>
+            <div id="w-grids" class="grid-flex"></div>
+            <div>
+                <button id="ans-btn" class="btn" style="background:var(--gold); color:var(--primary)" onclick="handleAnswer()">Show Answer</button>
+                <button class="btn" onclick="nextWord()">Next</button>
+            </div>
+        </div>
+        <div id="mode-match" class="view" style="display:none; width:100%">
+            <div id="match-grid"></div>
+            <div style="text-align:center; margin-top:10px;">
+                <div id="match-progress" style="font-weight:bold; color:var(--primary);"></div>
+                <button class="btn" onclick="resetMatchGame()">Reset</button>
+            </div>
+        </div>
+        <div id="mode-pinyin" class="view" style="display:none; flex-direction:column; align-items:center;">
+            <h1 id="p-char" style="font-size:5rem; margin:10px;"></h1>
+            <input type="text" id="p-input" placeholder="pinyin" style="padding:10px; font-size:1.5rem; text-align:center; width:200px; border:2px solid var(--primary); border-radius:10px;">
+            <div id="pinyin-correct" style="display:none;"></div>
+            <button class="btn" style="margin-top:15px;" onclick="checkPinyin()">Check</button>
+        </div>
+        <div id="mode-list" class="view" style="display:none; width:100%"><div id="list-view"></div></div>
+        <div id="mode-wrong" class="view" style="display:none; width:100%"><div id="wrong-view"></div></div>
+        <div id="result-screen">
+            <h2 id="result-text" style="color:var(--primary)"></h2>
+            <p>Please subscribe to "Xu's Fun Chinese" on Youtube!</p>
+            <button class="btn" onclick="switchMode('learn')">Restart</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const vocabulary = [
+    {c:"阿姨",p:"āyí",m:"aunt"},{c:"啊",p:"a",m:"ah"},{c:"矮",p:"ǎi",m:"short (height)"},{c:"爱好",p:"àihào",m:"hobby"},
+    {c:"安静",p:"ānjìng",m:"quiet"},{c:"把",p:"bǎ",m:"(object marker)"},{c:"班",p:"bān",m:"class"},{c:"搬",p:"bān",m:"move (house)"},
+    {c:"半",p:"bàn",m:"half"},{c:"办法",p:"bànfǎ",m:"method"},{c:"办公室",p:"bàngōngshì",m:"office"},{c:"帮忙",p:"bāngmáng",m:"help"},
+    {c:"包",p:"bāo",m:"bag"},{c:"饱",p:"bǎo",m:"full (after eating)"},{c:"北方",p:"běifāng",m:"north"},{c:"被",p:"bèi",m:"(passive marker)"},
+    {c:"鼻子",p:"bízi",m:"nose"},{c:"比较",p:"bǐjiào",m:"comparatively"},{c:"比赛",p:"bǐsài",m:"competition"},{c:"笔记本",p:"bǐjìběn",m:"notebook"},
+    {c:"必须",p:"bìxū",m:"must"},{c:"变化",p:"biànhuà",m:"change"},{c:"别人",p:"biéren",m:"others"},{c:"冰箱",p:"bīngxiāng",m:"refrigerator"},
+    {c:"菜单",p:"càidān",m:"menu"},{c:"参加",p:"cānjiā",m:"participate"},{c:"草",p:"cǎo",m:"grass"},{c:"层",p:"céng",m:"floor/layer"},
+    {c:"差",p:"chà",m:"differ"},{c:"超市",p:"chāoshì",m:"supermarket"},{c:"衬衫",p:"chènshān",m:"shirt"},{c:"成绩",p:"chéngjì",m:"grade"},
+    {c:"城市",p:"chéngshì",m:"city"},{c:"迟到",p:"chídào",m:"be late"},{c:"除了",p:"chūle",m:"except"},{c:"船",p:"chuán",m:"ship"},
+    {c:"春",p:"chūn",m:"spring"},{c:"词典",p:"cídiǎn",m:"dictionary"},{c:"聪明",p:"cōngming",m:"smart"},{c:"打扫",p:"dǎsǎo",m:"clean"},
+    {c:"打算",p:"dǎsuàn",m:"plan"},{c:"带",p:"dài",m:"bring"},{c:"担心",p:"dānxīn",m:"worry"},{c:"蛋糕",p:"dàngāo",m:"cake"},
+    {c:"当然",p:"dāngrán",m:"of course"},{c:"地",p:"de",m:"(adv marker)"},{c:"灯",p:"dēng",m:"light"},{c:"地方",p:"dìfang",m:"place"},
+    {c:"地铁",p:"dìtiě",m:"subway"},{c:"地图",p:"dìtú",m:"map"},{c:"电梯",p:"diàntī",m:"elevator"},{c:"电子邮件",p:"diànzǐ yóujiàn",m:"email"},
+    {c:"东",p:"dōng",m:"east"},{c:"冬",p:"dōng",m:"winter"},{c:"动物",p:"dòngwù",m:"animal"},{c:"短",p:"duǎn",m:"short (length)"},
+    {c:"段",p:"duàn",m:"section"},{c:"锻炼",p:"duànliàn",m:"exercise"},{c:"多么",p:"duōme",m:"how (adv)"},{c:"饿",p:"è",m:"hungry"},
+    {c:"耳朵",p:"ěrduo",m:"ear"},{c:"发烧",p:"fāshāo",m:"have a fever"},{c:"发现",p:"fāxiàn",m:"discover"},{c:"方便",p:"fāngbiàn",m:"convenient"},
+    {c:"放",p:"fàng",m:"put"},{c:"放心",p:"fàngxīn",m:"rest assured"},{c:"分",p:"fēn",m:"minute"},{c:"附近",p:"fùjìn",m:"nearby"},
+    {c:"复习",p:"fùxí",m:"review"},{c:"干净",p:"gānjìng",m:"clean"},{c:"感兴趣",p:"gǎn xìngqù",m:"be interested in"},{c:"感冒",p:"gǎnmào",m:"catch cold"},
+    {c:"刚才",p:"gāngcái",m:"just now"},{c:"个子",p:"gèzi",m:"height"},{c:"跟",p:"gēn",m:"with"},{c:"根据",p:"gēnjù",m:"according to"},
+    {c:"更",p:"gèng",m:"even more"},{c:"公斤",p:"gōngjīn",m:"kilogram"},{c:"公园",p:"gōngyuán",m:"park"},{c:"故事",p:"gùshi",m:"story"},
+    {c:"刮风",p:"guāfēng",m:"windy"},{c:"关",p:"guān",m:"close"},{c:"关系",p:"guānxì",m:"relationship"},{c:"关心",p:"guānxīn",m:"care about"},
+    {c:"关于",p:"guānyú",m:"about"},{c:"国家",p:"guójiā",m:"country"},{c:"过去",p:"guòqù",m:"past"},{c:"过",p:"guò",m:"pass"},
+    {c:"还是",p:"háishì",m:"or (in questions)"},{c:"害怕",p:"hàipà",m:"afraid"},{c:"黑板",p:"hēibǎn",m:"blackboard"},{c:"后来",p:"hòulái",m:"later"},
+    {c:"护照",p:"hùzhào",m:"passport"},{c:"花",p:"huā",m:"spend"},{c:"花",p:"huā",m:"flower"},{c:"画",p:"huà",m:"draw"},
+    {c:"坏",p:"huài",m:"bad"},{c:"欢迎",p:"huānyíng",m:"welcome"},{c:"还",p:"huán",m:"return"},{c:"环境",p:"huánjìng",m:"environment"},
+    {c:"换",p:"huàn",m:"change"},{c:"黄河",p:"huánghé",m:"Yellow River"},{c:"回答",p:"huídá",m:"answer"},{c:"会议",p:"huìyì",m:"meeting"},
+    {c:"或者",p:"huòzhě",m:"or"},{c:"几乎",p:"jīhū",m:"almost"},{c:"机会",p:"jīhuì",m:"opportunity"},{c:"极",p:"jí",m:"extremely"},
+    {c:"记得",p:"jìde",m:"remember"},{c:"季节",p:"jìjié",m:"season"},{c:"检查",p:"jiǎnchá",m:"check"},{c:"简单",p:"jiǎndān",m:"simple"},
+    {c:"健康",p:"jiànkāng",m:"healthy"},{c:"见面",p:"jiànmiàn",m:"meet"},{c:"讲",p:"jiǎng",m:"speak"},{c:"教",p:"jiāo",m:"teach"},
+    {c:"角",p:"jiǎo",m:"corner"},{c:"脚",p:"jiǎo",m:"foot"},{c:"接",p:"jiē",m:"receive"},{c:"街道",p:"jiēdào",m:"street"},
+    {c:"结婚",p:"jiéhūn",m:"marry"},{c:"结束",p:"jiéshù",m:"end"},{c:"节目",p:"jiémù",m:"program"},{c:"节日",p:"jiérì",m:"holiday"},
+    {c:"解决",p:"jiějué",m:"solve"},{c:"借",p:"jiè",m:"borrow"},{c:"经常",p:"jīngcháng",m:"often"},{c:"经过",p:"jīngguò",m:"pass by"},
+    {c:"经理",p:"jīnglǐ",m:"manager"},{c:"久",p:"jiǔ",m:"long time"},{c:"旧",p:"jiù",m:"old"},{c:"句子",p:"jùzi",m:"sentence"},
+    {c:"决定",p:"juédìng",m:"decide"},{c:"渴",p:"kě",m:"thirsty"},{c:"可爱",p:"kě'ài",m:"cute"},{c:"刻",p:"kè",m:"quarter (hour)"},
+    {c:"客人",p:"kèrén",m:"guest"},{c:"空调",p:"kōngtiáo",m:"air conditioner"},{c:"口",p:"kǒu",m:"mouth"},{c:"哭",p:"kū",m:"cry"},
+    {c:"裤子",p:"kùzi",m:"pants"},{c:"筷子",p:"kuàizi",m:"chopsticks"},{c:"蓝",p:"lán",m:"blue"},{c:"老",p:"lǎo",m:"old"},
+    {c:"离开",p:"líkāi",m:"leave"},{c:"礼物",p:"lǐwù",m:"gift"},{c:"历史",p:"lìshǐ",m:"history"},{c:"脸",p:"liǎn",m:"face"},
+    {c:"聊天",p:"liáotiān",m:"chat"},{c:"练习",p:"liànxí",m:"practice"},{c:"辆",p:"liàng",m:"(for vehicles)"},{c:"了解",p:"liǎojiě",m:"understand"},
+    {c:"邻居",p:"línjū",m:"neighbor"},{c:"留学",p:"liúxué",m:"study abroad"},{c:"楼",p:"lóu",m:"building"},{c:"绿",p:"lǜ",m:"green"},
+    {c:"马",p:"mǎ",m:"horse"},{c:"马上",p:"mǎshàng",m:"immediately"},{c:"满意",p:"mǎnyì",m:"satisfied"},{c:"帽子",p:"màozi",m:"hat"},
+    {c:"米",p:"mǐ",m:"rice"},{c:"面包",p:"miànbāo",m:"bread"},{c:"明白",p:"míngbai",m:"understand"},{c:"拿",p:"ná",m:"take"},
+    {c:"奶奶",p:"nǎinai",m:"paternal grandma"},{c:"南",p:"nán",m:"south"},{c:"难",p:"nán",m:"difficult"},{c:"难过",p:"nánguò",m:"sad"},
+    {c:"年级",p:"niánjí",m:"grade (school)"},{c:"年轻",p:"niánqīng",m:"young"},{c:"鸟",p:"niǎo",m:"bird"},{c:"努力",p:"nǔlì",m:"hard-working"},
+    {c:"爬山",p:"páshān",m:"climb mountain"},{c:"盘子",p:"pánzi",m:"plate"},{c:"胖",p:"pàng",m:"fat"},{c:"啤酒",p:"píjiǔ",m:"beer"},
+    {c:"皮鞋",p:"píxié",m:"leather shoes"},{c:"瓶子",p:"píngzi",m:"bottle"},{c:"其实",p:"qíshí",m:"actually"},{c:"其他",p:"qítā",m:"other"},
+    {c:"骑",p:"qí",m:"ride"},{c:"奇怪",p:"qíguài",m:"strange"},{c:"起来",p:"qǐlai",m:"get up"},{c:"起飞",p:"qǐfēi",m:"take off"},
+    {c:"清楚",p:"qīngchu",m:"clear"},{c:"请假",p:"qǐngjià",m:"ask for leave"},{c:"秋",p:"qiū",m:"autumn"},{c:"裙子",p:"qúnzi",m:"skirt"},
+    {c:"然后",p:"ránhòu",m:"then"},{c:"热情",p:"rèqíng",m:"enthusiastic"},{c:"认为",p:"rènwéi",m:"think"},{c:"认真",p:"rènzhēn",m:"serious"},
+    {c:"容易",p:"róngyì",m:"easy"},{c:"如果",p:"rúguǒ",m:"if"},{c:"伞",p:"sǎn",m:"umbrella"},{c:"上网",p:"shàngwǎng",m:"go online"},
+    {c:"生气",p:"shēngqì",m:"angry"},{c:"声音",p:"shēngyīn",m:"sound"},{c:"试",p:"shì",m:"try"},{c:"世界",p:"shìjiè",m:"world"},
+    {c:"瘦",p:"shòu",m:"thin"},{c:"舒服",p:"shūfu",m:"comfortable"},{c:"叔叔",p:"shūshu",m:"uncle"},{c:"树",p:"shù",m:"tree"},
+    {c:"数学",p:"shùxué",m:"math"},{c:"刷牙",p:"shuāyá",m:"brush teeth"},{c:"双",p:"shuāng",m:"pair"},{c:"水平",p:"shuǐpíng",m:"level"},
+    {c:"司机",p:"sījī",m:"driver"},{c:"太阳",p:"tàiyáng",m:"sun"},{c:"特别",p:"tèbié",m:"especially"},{c:"疼",p:"téng",m:"hurt"},
+    {c:"提高",p:"tígāo",m:"improve"},{c:"体育",p:"tǐyù",m:"PE"},{c:"甜",p:"tián",m:"sweet"},{c:"条",p:"tiáo",m:"(long thin things)"},
+    {c:"同事",p:"tóngshì",m:"colleague"},{c:"同意",p:"tóngyì",m:"agree"},{c:"头发",p:"tóufa",m:"hair"},{c:"突然",p:"tūrán",m:"suddenly"},
+    {c:"图书馆",p:"túshūguǎn",m:"library"},{c:"腿",p:"tuǐ",m:"leg"},{c:"完成",p:"wánchéng",m:"complete"},{c:"碗",p:"wǎn",m:"bowl"},
+    {c:"万",p:"wàn",m:"ten thousand"},{c:"忘记",p:"wàngjì",m:"forget"},{c:"为",p:"wèi",m:"for"},{c:"为了",p:"wèile",m:"in order to"},
+    {c:"位",p:"wèi",m:"(polite measure)"},{c:"文化",p:"wénhuà",m:"culture"},{c:"西",p:"xī",m:"west"},{c:"习惯",p:"xíguàn",m:"habit"},
+    {c:"洗手间",p:"xǐshǒujiān",m:"restroom"},{c:"洗澡",p:"xǐzǎo",m:"take a shower"},{c:"夏",p:"xià",m:"summer"},{c:"先",p:"xiān",m:"first"},
+    {c:"香蕉",p:"xiāngjiāo",m:"banana"},{c:"相信",p:"xiāngxìn",m:"believe"},{c:"向",p:"xiàng",m:"towards"},{c:"像",p:"xiàng",m:"resemble"},
+    {c:"小心",p:"xiǎoxīn",m:"be careful"},{c:"校长",p:"xiàozhǎng",m:"principal"},{c:"新闻",p:"xīnwén",m:"news"},{c:"新鲜",p:"xīnxiān",m:"fresh"},
+    {c:"信用卡",p:"xìnyòngkǎ",m:"credit card"},{c:"行李箱",p:"xínglixiāng",m:"suitcase"},{c:"熊猫",p:"xióngmāo",m:"panda"},{c:"需要",p:"xūyào",m:"need"},
+    {c:"选择",p:"xuǎnzé",m:"choose"},{c:"要求",p:"yāoqiú",m:"require"},{c:"爷爷",p:"yéye",m:"grandpa"},{c:"一定",p:"yídìng",m:"certainly"},
+    {c:"一共",p:"yígòng",m:"altogether"},{c:"一会儿",p:"yíhuìr",m:"a while"},{c:"一样",p:"yíyàng",m:"same"},{c:"以前",p:"yǐqián",m:"before"},
+    {c:"一般",p:"yìbān",m:"generally"},{c:"一边",p:"yìbiān",m:"at the same time"},{c:"一直",p:"yìzhí",m:"always"},{c:"音乐",p:"yīnyuè",m:"music"},
+    {c:"银行",p:"yínháng",m:"bank"},{c:"饮料",p:"yǐnliào",m:"beverage"},{c:"应该",p:"yīnggāi",m:"should"},{c:"影响",p:"yǐngxiǎng",m:"influence"},
+    {c:"用",p:"yòng",m:"use"},{c:"游戏",p:"yóuxì",m:"game"},{c:"有名",p:"yǒumíng",m:"famous"},{c:"又",p:"yòu",m:"again"},
+    {c:"遇到",p:"yùdào",m:"meet (by chance)"},{c:"元",p:"yuán",m:"yuan"},{c:"愿意",p:"yuànyì",m:"willing"},{c:"月亮",p:"yuèliang",m:"moon"},
+    {c:"越",p:"yuè",m:"the more..."},{c:"站",p:"zhàn",m:"stand"},{c:"张",p:"zhāng",m:"(measure for paper)"},{c:"长",p:"zhǎng",m:"grow"},
+    {c:"着急",p:"zháojí",m:"anxious"},{c:"照顾",p:"zhàogù",m:"take care of"},{c:"照片",p:"zhàopiàn",m:"photo"},{c:"照相机",p:"zhàoxiàngjī",m:"camera"},
+    {c:"只",p:"zhī",m:"only"},{c:"中文",p:"zhōngwén",m:"Chinese"},{c:"中间",p:"zhōngjiān",m:"middle"},{c:"终于",p:"zhōngyú",m:"finally"},
+    {c:"种",p:"zhǒng",m:"kind"},{c:"重要",p:"zhòngyào",m:"important"},{c:"周末",p:"zhōumò",m:"weekend"},{c:"主要",p:"zhǔyào",m:"main"},
+    {c:"注意",p:"zhùyì",m:"pay attention"},{c:"自己",p:"zìjǐ",m:"oneself"},{c:"自行车",p:"zìxíngchē",m:"bicycle"},{c:"总是",p:"zǒngshì",m:"always"},
+    {c:"嘴",p:"zuǐ",m:"mouth"},{c:"最后",p:"zuìhòu",m:"finally"},{c:"最近",p:"zuìjìn",m:"recently"},{c:"作业",p:"zuòyè",m:"homework"}
+];
+
+let curIdx = 0, writers = [], ansShow = false, wrongAnswers = [];
+let matchPool = [], matchedCount = 0, selectedMatch = [];
+
+function cleanup() {
+    writers.forEach(w => { if(w && w.destroy) w.destroy(); });
+    writers = [];
+    document.getElementById('s-grids').innerHTML = '';
+    document.getElementById('w-grids').innerHTML = '';
+}
+
+function switchMode(m, idx = 0) {
+    cleanup();
+    document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
+    if(document.getElementById('n-'+m)) document.getElementById('n-'+m).classList.add('active');
+    document.querySelectorAll('.view, #result-screen').forEach(v => v.style.display = 'none');
+    
+    const target = document.getElementById('mode-'+m);
+    if(target) target.style.display = (['list', 'match', 'wrong'].includes(m)) ? 'block' : 'flex';
+    
+    curIdx = idx;
+    requestAnimationFrame(() => {
+        if(m==='list') renderList();
+        else if(m==='match') resetMatchGame();
+        else if(m==='wrong') renderWrong();
+        else updateUI();
+    });
+}
+
+function updateUI() {
+    const item = vocabulary[curIdx];
+    document.getElementById('feedback-box').innerText = '';
+    document.getElementById('pinyin-correct').style.display = 'none';
+    document.getElementById('pinyin-correct').innerText = '';
+    
+    const isLearn = document.getElementById('mode-learn').style.display !== 'none';
+    const isWrite = document.getElementById('mode-write').style.display !== 'none';
+
+    if(isLearn) {
+        document.getElementById('s-pinyin').innerText = item.p;
+        document.getElementById('s-mean').innerText = item.m;
+        [...item.c].forEach((char, i) => {
+            const wrap = createGrid(char, 'study', i);
+            document.getElementById('s-grids').appendChild(wrap);
+            const w = HanziWriter.create(wrap.querySelector('.writer-div'), char, { width:160, height:160, padding:5, strokeColor:'#2f3542' });
+            writers.push(w);
+            wrap.onclick = () => { speak(char); w.animateCharacter(); };
+        });
+    }
+
+    if(isWrite) {
+        document.getElementById('w-mean').innerText = item.m;
+        ansShow = false; document.getElementById('ans-btn').innerText = "Show Answer";
+        [...item.c].forEach((char, i) => {
+            const wrap = createGrid(char, 'write', i);
+            document.getElementById('w-grids').appendChild(wrap);
+            initCanvas(wrap.querySelector('canvas'));
+        });
+    }
+    document.getElementById('p-char').innerText = item.c;
+    document.getElementById('p-input').value = '';
+}
+
+function createGrid(char, mode, idx) {
+    const w = document.createElement('div'); w.className = 'tian-wrapper';
+    w.innerHTML = `<div class="tianzige"></div><div class="writer-div"></div>`;
+    if(mode === 'write') w.innerHTML += `<canvas width="160" height="160"></canvas>`;
+    return w;
+}
+
+function initCanvas(can) {
+    const ctx = can.getContext('2d');
+    let drawing = false; ctx.strokeStyle = "red"; ctx.lineWidth = 8; ctx.lineCap = "round";
+    const getP = (e) => { 
+        const r = can.getBoundingClientRect(); 
+        const t = e.touches ? e.touches[0] : e;
+        return { x: t.clientX - r.left, y: t.clientY - r.top };
+    };
+    const start = (e) => { e.preventDefault(); drawing = true; const p = getP(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+    const move = (e) => { if(!drawing) return; const p = getP(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+    const end = () => { drawing = false; };
+    can.addEventListener('touchstart', start); can.addEventListener('touchmove', move); can.addEventListener('touchend', end);
+    can.addEventListener('mousedown', start); can.addEventListener('mousemove', move); can.addEventListener('mouseup', end);
+}
+
+function handleAnswer() {
+    ansShow = !ansShow;
+    const item = vocabulary[curIdx];
+    document.getElementById('ans-btn').innerText = ansShow ? "Hide Answer" : "Show Answer";
+    const grids = document.querySelectorAll('#w-grids .writer-div');
+    grids.forEach((g, i) => {
+        g.innerHTML = '';
+        if(ansShow) HanziWriter.create(g, item.c[i], { width: 160, height: 160, padding: 5, strokeColor: '#ccc' });
+    });
+}
+
+function resetMatchGame() {
+    matchPool = [...vocabulary].sort(() => 0.5 - Math.random());
+    matchedCount = 0;
+    initMatchRound();
+}
+
+function initMatchRound() {
+    const g = document.getElementById('match-grid'); g.innerHTML = ''; selectedMatch = [];
+    document.getElementById('match-progress').innerText = `Progress: ${matchedCount}/300`;
+    const roundItems = matchPool.slice(0, 4);
+    if(!roundItems.length) { showFinal(); return; }
+    let items = [];
+    roundItems.forEach(v => {
+        items.push({t: v.c, id: v.c}, {t: v.p, id: v.c}, {t: v.m, id: v.c});
+    });
+    items.sort(() => 0.5 - Math.random()).forEach(it => {
+        const d = document.createElement('div'); d.className = 'match-item'; d.innerText = it.t;
+        d.onclick = () => {
+            if(d.classList.contains('selected') || d.classList.contains('hidden')) return;
+            d.classList.add('selected'); selectedMatch.push({el: d, id: it.id});
+            if(selectedMatch.length === 3) {
+                if(selectedMatch[0].id === selectedMatch[1].id && selectedMatch[1].id === selectedMatch[2].id) {
+                    speak(selectedMatch[0].id);
+                    selectedMatch.forEach(s => s.el.classList.add('hidden'));
+                    if(!document.querySelector('.match-item:not(.hidden)')) {
+                        matchedCount += roundItems.length;
+                        matchPool.splice(0, 4);
+                        setTimeout(initMatchRound, 500);
+                    }
+                } else { setTimeout(() => { selectedMatch.forEach(s => s.el.classList.remove('selected')); selectedMatch = []; }, 500); }
+                selectedMatch = [];
+            }
+        };
+        g.appendChild(d);
+    });
+}
+
+function checkPinyin() {
+    const input = document.getElementById('p-input').value.toLowerCase().trim();
+    const item = vocabulary[curIdx];
+    const correct = item.p.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
+    const cleanInput = input.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
+
+    document.getElementById('pinyin-correct').style.display = 'none';
+
+    if(cleanInput === correct) {
+        document.getElementById('feedback-box').innerText = '👍 Good!';
+        if(!wrongAnswers.includes(item)) wrongAnswers = wrongAnswers.filter(w => w !== item); // remove if previously wrong
+    } else {
+        document.getElementById('feedback-box').innerText = '❌ Wrong';
+        document.getElementById('pinyin-correct').innerText = `正确拼音：${item.p}`;
+        document.getElementById('pinyin-correct').style.display = 'block';
+        if(!wrongAnswers.includes(item)) wrongAnswers.push(item);
+    }
+
+    setTimeout(() => {
+        if(curIdx >= 299) {
+            showFinal();
+        } else {
+            nextWord();
+        }
+    }, 1200);
+}
+
+function nextWord() { 
+    curIdx = (curIdx + 1) % 300; 
+    cleanup(); 
+    updateUI(); 
+}
+
+function showFinal() {
+    document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+    document.getElementById('result-screen').style.display = 'block';
+    const praises = ["太棒了！", "HSK3 完成！", "你真厉害！", "非常出色！"];
+    const text = praises[Math.floor(Math.random()*praises.length)];
+    document.getElementById('result-text').innerText = text;
+    speak(text);
+}
+
+function renderList() {
+    document.getElementById('list-view').innerHTML = vocabulary.map((v, i) => `
+        <div class="list-card" onclick="switchMode('learn', ${i})">
+            <b style="font-size:1.5rem;">${v.c}</b>
+            <div><span style="color:var(--pinyin-red); font-weight:bold; font-size:1.1rem;">${v.p}</span><br><small>${v.m}</small></div>
+        </div>`).join('');
+}
+
+function renderWrong() {
+    const container = document.getElementById('wrong-view');
+    if(!wrongAnswers.length) { 
+        container.innerHTML = "<p style='text-align:center; padding:20px;'>No mistakes yet! Keep practicing!</p>"; 
+        return; 
+    }
+    container.innerHTML = wrongAnswers.map(v => {
+        const idx = vocabulary.findIndex(it => it.c === v.c);
+        return `<div class="list-card" onclick="switchMode('learn', ${idx})"><b>${v.c}</b><div><span style="color:var(--pinyin-red); font-weight:bold;">${v.p}</span><br><small>${v.m}</small></div></div>`;
+    }).join('');
+}
+
+function speak(t) { 
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const m = new SpeechSynthesisUtterance(t); 
+        m.lang = 'zh-CN'; m.rate = 0.8; 
+        window.speechSynthesis.speak(m); 
+    }
+}
+
+function enterApp() { 
+    document.getElementById('cover-page').style.opacity = '0'; 
+    setTimeout(() => { 
+        document.getElementById('cover-page').style.display = 'none'; 
+        switchMode('learn'); 
+    }, 500); 
+}
+
+window.onload = () => {
+    const container = document.getElementById('star-container');
+    for(let i=0; i<50; i++) {
+        let s = document.createElement('div'); s.className = 'star';
+        s.style.setProperty('--angle', Math.random() * 360 + 'deg');
+        s.style.animationDuration = Math.random() * 1 + 1 + 's';
+        container.appendChild(s);
+    }
+};
+</script>
+</body>
+</html>
