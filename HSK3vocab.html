@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, landscape=yes">
+    <title>HSK 3 Master - XUSFUNCHINESE</title>
+    <style>
+        :root {
+            --primary: #01579b; 
+            --accent: #e1f5fe;  
+            --gold: #fbc02d;
+            --pinyin: #d0021b; 
+            --night-sky: radial-gradient(circle at center, #001f3f 0%, #000510 100%);
+        }
+        
+        body { 
+            margin: 0; font-family: "Arial Black", "Segoe UI", Tahoma, sans-serif; 
+            background: linear-gradient(135deg, #0277bd 0%, #002f6c 100%); 
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative;
+        }
+
+        /* 封面页 */
+        #cover-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--night-sky); z-index: 5000; display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; transition: opacity 0.8s ease-out, visibility 0.8s;
+        }
+        .cover-content { text-align: center; }
+        .cover-title { font-size: 7vw; color: white; text-transform: uppercase; margin: 0; }
+        .cover-subtitle { font-size: 9vw; color: var(--gold); margin-top: 5px; font-weight: 900; }
+
+        .watermark {
+            position: fixed; right: 30px; bottom: 30px; font-size: 28px;
+            font-weight: 900; color: rgba(255, 255, 255, 0.2);
+            pointer-events: none; z-index: 1000; letter-spacing: 3px;
+        }
+
+        header { 
+            background: rgba(255,255,255,0.95); padding: 10px 20px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 100; 
+        }
+        .nav-btns button { 
+            padding: 8px 15px; margin-right: 5px; border-radius: 20px; border: 2px solid var(--primary); 
+            cursor: pointer; font-weight: bold; background: white; color: var(--primary);
+        }
+        .active-mode { background: var(--primary) !important; color: white !important; }
+
+        main { flex: 1; display: flex; padding: 20px; gap: 15px; overflow: hidden; }
+        #left-panel { flex: 1; background: white; border-radius: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 4px solid var(--accent); }
+        #right-panel { flex: 1.6; background: white; border-radius: 30px; padding: 30px; display: flex; flex-direction: column; overflow-y: auto; border: 4px solid var(--accent); }
+
+        .sentence-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin: 10px 0; }
+        .word-unit { display: inline-flex; flex-direction: column; align-items: center; min-width: 45px; }
+        .py-text { font-size: 18px; color: var(--pinyin); font-weight: bold; min-height: 22px; }
+        .zh-text { font-size: 48px; font-weight: 600; line-height: 1.1; }
+        
+        .eng-translation { font-size: 24px; color: #444; margin-top: 15px; text-align: center; font-style: italic; border-top: 1px dashed #ddd; padding-top: 10px; width: 100%; }
+
+        #emoji-display { font-size: 120px; margin-bottom: 20px; }
+        .option-btn { background: white; border: 2px solid var(--primary); padding: 15px; margin: 8px 0; border-radius: 15px; cursor: pointer; font-size: 20px; width: 100%; font-weight: bold; }
+        
+        #scroll-view { display: none; width: 100%; overflow-y: auto; padding: 20px; background: white; border-radius: 30px; }
+        .list-row { border-bottom: 1px solid var(--accent); padding: 15px; cursor: pointer; display: flex; align-items: center; }
+        .list-row:hover { background: #f0faff; }
+        .hidden { display: none !important; }
+        #timer-display { font-size: 22px; color: #d32f2f; font-weight: bold; margin-right: 15px; }
+    </style>
+</head>
+<body>
+
+<div id="cover-page" onclick="enterApp()">
+    <div class="cover-content">
+        <h1 class="cover-title">HSK 3 VOCABULARY</h1>
+        <div class="cover-subtitle">300 WORDS</div>
+        <div style="color:white; margin-top:20px; letter-spacing:3px; font-weight:bold;">TAP TO START</div>
+    </div>
+</div>
+
+<div class="watermark">XUSFUNCHINESE</div>
+
+<header>
+    <div style="display: flex; align-items: center;">
+        <div class="nav-btns">
+            <button onclick="changeMode('study')" id="btn-study">📖 Learn</button>
+            <button onclick="changeMode('review')" id="btn-review">🔄 Review</button>
+            <button onclick="changeMode('quiz')" id="btn-quiz">⚡ Quiz</button>
+            <button onclick="changeMode('rush')" id="btn-rush">🔥 Rush</button>
+            <button onclick="changeMode('mistakes')" id="btn-mistakes">❌ Error</button>
+        </div>
+        <div id="mode-instruction" style="font-size: 14px; color: #666; margin-left: 15px; font-style: italic;"></div>
+    </div>
+    <div style="display: flex; align-items: center;">
+        <span id="timer-display" class="hidden">00:30</span>
+        <button onclick="changeMode('list')" id="btn-list" style="padding: 8px 15px; border-radius: 20px; border: 2px solid #555; background: white; cursor: pointer; font-weight: bold;">📜 List</button>
+        <span style="font-weight: bold; color: var(--primary); margin-left:15px;">Score: <span id="score-val">0</span></span>
+    </div>
+</header>
+
+<main>
+    <div id="main-ui" style="display: flex; width: 100%; gap: 15px;">
+        <div id="left-panel">
+            <div id="emoji-display">🎓</div>
+            <button onclick="speakItem(true)" style="padding: 15px 40px; border-radius: 50px; cursor: pointer; background: var(--primary); color: white; border: none; font-weight: bold; font-size: 20px;">🔊 Audio</button>
+        </div>
+        <div id="right-panel">
+            <div id="display-area" style="min-height:220px; display:flex; flex-direction:column; align-items:center; justify-content:center;"></div>
+            <div id="hint-box" class="hidden" style="margin-top:20px; text-align:center; background:#fffde7; padding:15px; border-radius:15px; border-left:8px solid var(--gold);"></div>
+            <div id="interaction-area" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+    <div id="scroll-view"></div>
+</main>
+
+<script>
+    const database = [
+        ["阿姨", "āyí", "aunt", "👩", {cn: "阿姨好", py: "ā yí hǎo", en: "Hello aunt"}],
+        ["啊", "a", "ah", "❗", {cn: "啊，太好了", py: "a, tài hǎo le", en: "Ah, that's great"}],
+        ["矮", "ǎi", "short", "📏", {cn: "他很矮", py: "tā hěn ǎi", en: "He is short"}],
+        ["爱好", "àihào", "hobby", "🎨", {cn: "我的爱好是看书", py: "wǒ de ài hào shì kàn shū", en: "My hobby is reading books"}],
+        ["安静", "ānjìng", "Be quiet", "🤫", {cn: "请安静", py: "qǐng ān jìng", en: "Please be quiet"}],
+        ["把", "bǎ", "hold", "👐", {cn: "把书给我", py: "bǎ shū gěi wǒ", en: "Give me the book"}],
+        ["班", "bān", "class", "👥", {cn: "我在三班", py: "wǒ zài sān bān", en: "I am in class three"}],
+        ["搬", "bān", "move", "🚚", {cn: "搬桌子", py: "bān zhuō zi", en: "Move the table"}],
+        ["半", "bàn", "half", "½", {cn: "半小时", py: "bàn xiǎo shí", en: "Half an hour"}],
+        ["办法", "bànfǎ", "Way", "🛣️", {cn: "好办法", py: "hǎo bàn fǎ", en: "Good way"}],
+        ["办公室", "bàngōngshì", "Office", "🏢", {cn: "去办公室", py: "qù bàn gōng shì", en: "Go to the office"}],
+        ["帮忙", "bāngmáng", "Help", "🤝", {cn: "请帮忙", py: "qǐng bāng máng", en: "Please help"}],
+        ["包", "bāo", "package", "📦", {cn: "一个包", py: "yī gè bāo", en: "One package"}],
+        ["饱", "bǎo", "full", "🍽️", {cn: "吃饱了", py: "chī bǎo le", en: "Ate full"}],
+        ["北方", "běifāng", "north", "🧭", {cn: "去北方", py: "qù běi fāng", en: "Go north"}],
+        ["被", "bèi", "cover", "🛏️", {cn: "被子很暖", py: "bèi zi hěn nuǎn", en: "The cover is warm"}],
+        ["鼻子", "bízi", "nose", "👃", {cn: "大鼻子", py: "dà bí zi", en: "Big nose"}],
+        ["比较", "bǐjiào", "compare", "⚖️", {cn: "比较好", py: "bǐ jiào hǎo", en: "Relatively good"}],
+        ["比赛", "bǐsài", "Match", "🏆", {cn: "看比赛", py: "kàn bǐ sài", en: "Watch the match"}],
+        ["笔记本", "bǐjìběn", "notebook", "📓", {cn: "买笔记本", py: "mǎi bǐ jì běn", en: "Buy notebook"}],
+        ["必须", "bìxū", "Must", "⚠️", {cn: "必须去", py: "bì xū qù", en: "Must go"}],
+        ["变化", "biànhuà", "change", "🔄", {cn: "大变化", py: "dà biàn huà", en: "Big change"}],
+        ["别人", "biéren", "Others", "👥", {cn: "给别人", py: "gěi bié ren", en: "Give to others"}],
+        ["冰箱", "bīngxiāng", "Refrigerator", "❄️", {cn: "打开冰箱", py: "dǎ kāi bīng xiāng", en: "Open the refrigerator"}],
+        ["菜单", "càidān", "menu", "📜", {cn: "看菜单", py: "kàn cài dān", en: "Look at the menu"}],
+        ["参加", "cānjiā", "participate in", "🤝", {cn: "参加活动", py: "cān jiā huó dòng", en: "Participate in activity"}],
+        ["草", "cǎo", "grass", "🌿", {cn: "绿色的草", py: "lǜ sè de cǎo", en: "Green grass"}],
+        ["层", "céng", "layer", "📚", {cn: "三层楼", py: "sān céng lóu", en: "Three layers building"}],
+        ["差", "chà", "bad", "👎", {cn: "不太差", py: "bú tài chà", en: "Not too bad"}],
+        ["超市", "chāoshì", "Supermarket", "🛒", {cn: "去超市买东西", py: "qù chāo shì mǎi dōng xi", en: "Go to supermarket to buy things"}],
+        ["衬衫", "chènshān", "shirt", "👔", {cn: "新衬衫", py: "xīn chèn shān", en: "New shirt"}],
+        ["成绩", "chéngjì", "achievement", "🏅", {cn: "好成绩", py: "hǎo chéng jì", en: "Good achievement"}],
+        ["城市", "chéngshì", "City", "🏙️", {cn: "大城市", py: "dà chéng shì", en: "Big city"}],
+        ["迟到", "chídào", "Late", "⏰", {cn: "不要迟到", py: "bú yào chí dào", en: "Don't be late"}],
+        ["除了", "chúle", "except, besides", "➖", {cn: "除了你", py: "chú le nǐ", en: "Except you"}],
+        ["船", "chuán", "ship", "🚢", {cn: "大船", py: "dà chuán", en: "Big ship"}],
+        ["春", "chūn", "spring", "🌸", {cn: "春天来了", py: "chūn tiān lái le", en: "Spring is coming"}],
+        ["词典", "cídiǎn", "Dictionaries", "📖", {cn: "用词典", py: "yòng cí diǎn", en: "Use dictionary"}],
+        ["聪明", "cōngming", "clever", "🧠", {cn: "很聪明", py: "hěn cōng ming", en: "Very clever"}],
+        ["打扫", "dǎsǎo", "Clean", "🧹", {cn: "打扫房间", py: "dǎ sǎo fáng jiān", en: "Clean the room"}],
+        ["打算", "dǎsuàn", "Plan", "📅", {cn: "我打算去", py: "wǒ dǎ suàn qù", en: "I plan to go"}],
+        ["带", "dài", "belt", "🛡️", {cn: "带东西", py: "dài dōng xi", en: "Bring things"}],
+        ["担心", "dānxīn", "Worry", "😟", {cn: "不要担心", py: "bú yào dān xīn", en: "Don't worry"}],
+        ["蛋糕", "dàngāo", "Cake", "🍰", {cn: "吃蛋糕", py: "chī dàn gāo", en: "Eat cake"}],
+        ["当然", "dāngrán", "Of course", "👍", {cn: "当然好", py: "dāng rán hǎo", en: "Of course good"}],
+        ["地", "de", "", "🌍", {cn: "在地上", py: "zài dì shàng", en: "On the ground"}],
+        ["灯", "dēng", "lamp", "💡", {cn: "开灯", py: "kāi dēng", en: "Turn on the lamp"}],
+        ["地方", "dìfang", "local", "📍", {cn: "好地方", py: "hǎo dì fang", en: "Good place"}],
+        ["地铁", "dìtiě", "metro", "🚇", {cn: "坐地铁", py: "zuò dì tiě", en: "Take the metro"}],
+        ["地图", "dìtú", "Map", "🗺️", {cn: "看地图", py: "kàn dì tú", en: "Look at the map"}],
+        ["电梯", "diàntī", "Elevator.", "🛗", {cn: "坐电梯", py: "zuò diàn tī", en: "Take the elevator"}],
+        ["电子邮件", "diànzǐyóujiàn", "E-mail", "📧", {cn: "发电子邮件", py: "fā diàn zǐ yóu jiàn", en: "Send email"}],
+        ["东", "dōng", "east", "➡️", {cn: "去东边", py: "qù dōng bian", en: "Go east"}],
+        ["冬", "dōng", "winter", "❄️", {cn: "冬天很冷", py: "dōng tiān hěn lěng", en: "Winter is cold"}],
+        ["动物", "dòngwù", "Animal", "🐶", {cn: "看动物", py: "kàn dòng wù", en: "See animals"}],
+        ["短", "duǎn", "short", "📏", {cn: "短头发", py: "duǎn tóu fa", en: "Short hair"}],
+        ["段", "duàn", "paragraph", "📝", {cn: "一段话", py: "yī duàn huà", en: "One paragraph"}],
+        ["锻炼", "duànliàn", "Physical exercise", "🏃", {cn: "去锻炼", py: "qù duàn liàn", en: "Go exercise"}],
+        ["多么", "duōme", "such", "❓", {cn: "多么好", py: "duō me hǎo", en: "How good"}],
+        ["饿", "è", "hungry", "🍽️", {cn: "我饿了", py: "wǒ è le", en: "I am hungry"}],
+        ["不但……而且……", "búdàn...érqiě…", "not only…but also…", "➕", {cn: "不但好而且快", py: "bú dàn hǎo ér qiě kuài", en: "Not only good but also fast"}],
+        ["耳朵", "ěrduo", "Ears", "👂", {cn: "大耳朵", py: "dà ěr duo", en: "Big ears"}],
+        ["发", "fā", "send out", "📤", {cn: "发消息", py: "fā xiāo xi", en: "Send message"}],
+        ["发烧", "fāshāo", "Have a fever", "🤒", {cn: "他发烧了", py: "tā fā shāo le", en: "He has a fever"}],
+        ["发现", "fāxiàn", "find, discover", "🔍", {cn: "发现问题", py: "fā xiàn wèn tí", en: "Discover problem"}],
+        ["方便", "fāngbiàn", "convenient", "👍", {cn: "很方便", py: "hěn fāng biàn", en: "Very convenient"}],
+        ["放", "fàng", "discharge", "🆓", {cn: "放东西", py: "fàng dōng xi", en: "Put things"}],
+        ["放心", "fàngxīn", "Don't worry", "😌", {cn: "请放心", py: "qǐng fàng xīn", en: "Don't worry"}],
+        ["分", "fēn", "minute", "⏱️", {cn: "五分鐘", py: "wǔ fēn zhōng", en: "Five minutes"}],
+        ["附近", "fùjìn", "nearby", "📍", {cn: "在附近", py: "zài fù jìn", en: "Nearby"}],
+        ["复习", "fùxí", "Review", "🔄", {cn: "复习课", py: "fù xí kè", en: "Review lesson"}],
+        ["干净", "gānjìng", "clean", "✨", {cn: "很干净", py: "hěn gān jing", en: "Very clean"}],
+        ["感兴趣", "gǎnxìngqù", "be interested in", "🤩", {cn: "感兴趣的事", py: "gǎn xìng qù de shì", en: "Interested in things"}],
+        ["感冒", "gǎnmào", "get a cold", "🤧", {cn: "我感冒了", py: "wǒ gǎn mào le", en: "I got a cold"}],
+        ["刚才", "gāngcái", "just", "🕒", {cn: "刚才去了", py: "gāng cái qù le", en: "Just went"}],
+        ["个子", "gèzi", "height", "📏", {cn: "高个子", py: "gāo gè zi", en: "Tall height"}],
+        ["跟", "gēn", "with", "👫", {cn: "跟我来", py: "gēn wǒ lái", en: "Come with me"}],
+        ["根据", "gēnjù", "according to", "📜", {cn: "根据书", py: "gēn jù shū", en: "According to the book"}],
+        ["更", "gèng", "more", "➕", {cn: "更好", py: "gèng hǎo", en: "Even better"}],
+        ["公斤", "gōngjīn", "Kg.", "⚖️", {cn: "一公斤", py: "yī gōng jīn", en: "One kilogram"}],
+        ["公园", "gōngyuán", "Park", "🌳", {cn: "去公园", py: "qù gōng yuán", en: "Go to park"}],
+        ["故事", "gùshi", "Story", "📖", {cn: "讲故事", py: "jiǎng gù shi", en: "Tell story"}],
+        ["刮风", "guāfēng", "Windy", "🌬️", {cn: "今天刮风", py: "jīn tiān guā fēng", en: "Windy today"}],
+        ["关", "guān", "shut", "🚪", {cn: "关门", py: "guān mén", en: "Shut the door"}],
+        ["关系", "guānxì", "relationship", "🤝", {cn: "好关系", py: "hǎo guān xi", en: "Good relationship"}],
+        ["关心", "guānxīn", "Care for", "❤️", {cn: "关心朋友", py: "guān xīn péng you", en: "Care for friends"}],
+        ["关于", "guānyú", "about", "📄", {cn: "关于书", py: "guān yú shū", en: "About the book"}],
+        ["国家", "guójiā", "Country", "🌍", {cn: "我的国家", py: "wǒ de guó jiā", en: "My country"}],
+        ["过去", "guòqù", "Past times", "🕰️", {cn: "过去很好", py: "guò qù hěn hǎo", en: "Past was good"}],
+        ["过（动词）", "guò", "pass", "🏁", {cn: "过马路", py: "guò mǎ lù", en: "Pass the road"}],
+        ["还是", "háishì", "still", "🤔", {cn: "还是去", py: "hái shì qù", en: "Still go"}],
+        ["害怕", "hàipà", "Fear", "😱", {cn: "不要害怕", py: "bú yào hài pà", en: "Don't fear"}],
+        ["黑板", "hēibǎn", "blackboard", "🖼️", {cn: "写黑板", py: "xiě hēi bǎn", en: "Write on blackboard"}],
+        ["后来", "hòulái", "later", "⏳", {cn: "后来去了", py: "hòu lái qù le", en: "Went later"}],
+        ["护照", "hùzhào", "passport", "🛂", {cn: "带护照", py: "dài hù zhào", en: "Bring passport"}],
+        ["花（动词）", "huā", "spend", "💸", {cn: "花钱", py: "huā qián", en: "Spend money"}],
+        ["花（名词）", "huā", "flower", "🌸", {cn: "漂亮的花", py: "piào liang de huā", en: "Beautiful flower"}],
+        ["画", "huà", "painting", "🖼️", {cn: "画画", py: "huà huà", en: "Draw painting"}],
+        ["坏", "huài", "bad", "👎", {cn: "坏东西", py: "huài dōng xi", en: "Bad thing"}],
+        ["欢迎", "huānyíng", "Welcome", "👋", {cn: "欢迎你", py: "huān yíng nǐ", en: "Welcome you"}],
+        ["还（动词）", "huán", "Return", "🔄", {cn: "还书", py: "huán shū", en: "Return book"}],
+        ["环境", "huánjìng", "Environment", "🌳", {cn: "好环境", py: "hǎo huán jìng", en: "Good environment"}],
+        ["换", "huàn", "change", "🔄", {cn: "换衣服", py: "huàn yī fu", en: "Change clothes"}],
+        ["黄河", "huánghé", "Yellow River", "🏞️", {cn: "看黄河", py: "kàn huáng hé", en: "See Yellow River"}],
+        ["回答", "huídá", "Answer", "💬", {cn: "回答问题", py: "huí dá wèn tí", en: "Answer question"}],
+        ["会议", "huìyì", "Meeting", "👥", {cn: "开会议", py: "kāi huì yì", en: "Have meeting"}],
+        ["或者", "huòzhě", "perhaps", "🤔", {cn: "或者不去", py: "huò zhě bú qù", en: "Perhaps not go"}],
+        ["几乎", "jīhū", "almost", "🤏", {cn: "几乎到了", py: "jī hū dào le", en: "Almost arrived"}],
+        ["机会", "jīhuì", "Opportunity", "🚪", {cn: "好机会", py: "hǎo jī huì", en: "Good opportunity"}],
+        ["极", "jí", "extremely", "🔥", {cn: "极好", py: "jí hǎo", en: "Extremely good"}],
+        ["记得", "jìde", "remember", "🧠", {cn: "记得吗", py: "jì de ma", en: "Remember?"}],
+        ["季节", "jìjié", "Season", "🍂", {cn: "四个季节", py: "sì gè jì jié", en: "Four seasons"}],
+        ["检查", "jiǎnchá", "inspect", "🔍", {cn: "检查书", py: "jiǎn chá shū", en: "Inspect book"}],
+        ["简单", "jiǎndān", "simple", "👍", {cn: "很简单", py: "hěn jiǎn dān", en: "Very simple"}],
+        ["健康", "jiànkāng", "Healthy", "💪", {cn: "很健康", py: "hěn jiàn kāng", en: "Very healthy"}],
+        ["见面", "jiànmiàn", "meet", "🤝", {cn: "见面好", py: "jiàn miàn hǎo", en: "Nice to meet"}],
+        ["讲", "jiǎng", "speak", "🗣️", {cn: "讲中文", py: "jiǎng zhōng wén", en: "Speak Chinese"}],
+        ["教", "jiāo", "teach", "👩‍🏫", {cn: "教学生", py: "jiāo xué sheng", en: "Teach students"}],
+        ["角", "jiǎo", "horn", "📐", {cn: "三角形", py: "sān jiǎo xíng", en: "Triangle"}],
+        ["脚", "jiǎo", "foot", "🦶", {cn: "疼脚", py: "téng jiǎo", en: "Foot hurts"}],
+        ["接", "jiē", "pick,get", "🤲", {cn: "接朋友", py: "jiē péng you", en: "Pick up friend"}],
+        ["街道", "jiēdào", "Street", "🛣️", {cn: "大街道", py: "dà jiē dào", en: "Big street"}],
+        ["结婚", "jiéhūn", "marry", "💒", {cn: "他们结婚", py: "tā men jié hūn", en: "They marry"}],
+        ["结束", "jiéshù", "End", "🏁", {cn: "结束课", py: "jié shù kè", en: "End class"}],
+        ["节目", "jiémù", "program", "📺", {cn: "看节目", py: "kàn jié mù", en: "Watch program"}],
+        ["节日", "jiérì", "festival", "🎉", {cn: "快乐节日", py: "kuài lè jié rì", en: "Happy festival"}],
+        ["解决", "jiějué", "Solve", "🔑", {cn: "解决问题", py: "jiě jué wèn tí", en: "Solve problem"}],
+        ["借", "jiè", "borrow", "🤲", {cn: "借书", py: "jiè shū", en: "Borrow book"}],
+        ["经常", "jīngcháng", "Often", "🔄", {cn: "经常去", py: "jīng cháng qù", en: "Often go"}],
+        ["经过", "jīngguò", "After, through", "🚶", {cn: "经过家", py: "jīng guò jiā", en: "Pass by home"}],
+        ["经理", "jīnglǐ", "manager", "👔", {cn: "经理好", py: "jīng lǐ hǎo", en: "Hello manager"}],
+        ["久", "jiǔ", "long", "⏳", {cn: "好久不见", py: "hǎo jiǔ bú jiàn", en: "Long time no see"}],
+        ["旧", "jiù", "old,used", "🛋️", {cn: "旧书", py: "jiù shū", en: "Old book"}],
+        ["句子", "jùzi", "sentence", "📝", {cn: "一个句子", py: "yī gè jù zi", en: "One sentence"}],
+        ["决定", "juédìng", "Decision", "🤔", {cn: "做决定", py: "zuò jué dìng", en: "Make decision"}],
+        ["渴", "kě", "thirsty", "🥤", {cn: "我渴了", py: "wǒ kě le", en: "I am thirsty"}],
+        ["可爱", "kě'ài", "Lovely", "🥰", {cn: "很可爱", py: "hěn kě ài", en: "Very lovely"}],
+        ["刻", "kè", "moment", "⏱️", {cn: "一刻钟", py: "yī kè zhōng", en: "One quarter hour"}],
+        ["客人", "kèrén", "Guest", "👤", {cn: "欢迎客人", py: "huān yíng kè ren", en: "Welcome guest"}],
+        ["空调", "kōngtiáo", "Air conditioner", "❄️", {cn: "开空调", py: "kāi kōng tiáo", en: "Turn on air conditioner"}],
+        ["口", "kǒu", "mouth", "👄", {cn: "张口", py: "zhāng kǒu", en: "Open mouth"}],
+        ["哭", "kū", "cry", "😢", {cn: "不要哭", py: "bú yào kū", en: "Don't cry"}],
+        ["裤子", "kùzi", "trousers", "👖", {cn: "新裤子", py: "xīn kù zi", en: "New trousers"}],
+        ["筷子", "kuàizi", "chopsticks", "🥢", {cn: "用筷子", py: "yòng kuài zi", en: "Use chopsticks"}],
+        ["蓝", "lán", "blue", "🔵", {cn: "蓝色衣服", py: "lán sè yī fu", en: "Blue clothes"}],
+        ["老", "lǎo", "old", "👴", {cn: "老人", py: "lǎo ren", en: "Old person"}],
+        ["离开", "líkāi", "leave", "🚶", {cn: "离开家", py: "lí kāi jiā", en: "Leave home"}],
+        ["礼物", "lǐwù", "gift", "🎁", {cn: "送礼物", py: "sòng lǐ wù", en: "Give gift"}],
+        ["历史", "lìshǐ", "History", "📜", {cn: "学历史", py: "xué lì shǐ", en: "Study history"}],
+        ["脸", "liǎn", "face", "😊", {cn: "洗脸", py: "xǐ liǎn", en: "Wash face"}],
+        ["聊天", "liáotiān", "chat", "💬", {cn: "聊天好玩", py: "liáo tiān hǎo wán", en: "Chat is fun"}],
+        ["练习", "liànxí", "Practice", "🏋️", {cn: "练习中文", py: "liàn xí zhōng wén", en: "Practice Chinese"}],
+        ["辆", "liàng", "Car", "🚗", {cn: "一辆车", py: "yī liàng chē", en: "One car"}],
+        ["了解", "liǎojiě", "understand", "💡", {cn: "了解朋友", py: "liǎo jiě péng you", en: "Understand friends"}],
+        ["邻居", "línjū", "neighbor", "🏠", {cn: "好邻居", py: "hǎo lín jū", en: "Good neighbor"}],
+        ["留学", "liúxué", "Overseas Study", "✈️", {cn: "去留学", py: "qù liú xué", en: "Go study abroad"}],
+        ["楼", "lóu", "floor", "🏢", {cn: "上楼", py: "shàng lóu", en: "Go upstairs"}],
+        ["绿", "lǜ", "green", "🟢", {cn: "绿色苹果", py: "lǜ sè píng guǒ", en: "Green apple"}],
+        ["马", "mǎ", "Horse", "🐴", {cn: "大马", py: "dà mǎ", en: "Big horse"}],
+        ["马上", "mǎshàng", "Right off", "🚀", {cn: "马上来", py: "mǎ shàng lái", en: "Come right away"}],
+        ["满意", "mǎnyì", "Satisfied", "😊", {cn: "很满意", py: "hěn mǎn yì", en: "Very satisfied"}],
+        ["帽子", "màozi", "Hat", "🧢", {cn: "戴帽子", py: "dài mào zi", en: "Wear hat"}],
+        ["米", "mǐ", "rice", "🍚", {cn: "吃米饭", py: "chī mǐ fàn", en: "Eat rice"}],
+        ["面包", "miànbāo", "Bread", "🍞", {cn: "买面包", py: "mǎi miàn bāo", en: "Buy bread"}],
+        ["明白", "míngbai", "clear", "💡", {cn: "明白吗", py: "míng bai ma", en: "Understand?"}],
+        ["拿", "ná", "take", "🤲", {cn: "拿书", py: "ná shū", en: "Take book"}],
+        ["奶奶", "nǎinai", "grandma", "👵", {cn: "奶奶好", py: "nǎi nai hǎo", en: "Hello grandma"}],
+        ["南", "nán", "south", "⬇️", {cn: "去南边", py: "qù nán bian", en: "Go south"}],
+        ["难", "nán", "difficult", "🤔", {cn: "很难", py: "hěn nán", en: "Very difficult"}],
+        ["难过", "nánguò", "sad", "😔", {cn: "很难过", py: "hěn nán guò", en: "Very sad"}],
+        ["年级", "niánjí", "grade", "📚", {cn: "二年级", py: "èr nián jí", en: "Second grade"}],
+        ["年轻", "niánqīng", "Young", "👦", {cn: "很年轻", py: "hěn nián qīng", en: "Very young"}],
+        ["鸟", "niǎo", "bird", "🐦", {cn: "小鸟", py: "xiǎo niǎo", en: "Small bird"}],
+        ["努力", "nǔlì", "Strive", "💪", {cn: "努力学习", py: "nǔ lì xué xí", en: "Strive to study"}],
+        ["爬山", "páshān", "Mountain climbing", "🧗", {cn: "去爬山", py: "qù pá shān", en: "Go mountain climbing"}],
+        ["盘子", "pánzi", "plate", "🍽️", {cn: "洗盘子", py: "xǐ pán zi", en: "Wash plate"}],
+        ["胖", "pàng", "fat", "🍔", {cn: "他很胖", py: "tā hěn pàng", en: "He is fat"}],
+        ["啤酒", "píjiǔ", "Beer", "🍺", {cn: "喝啤酒", py: "hē pí jiǔ", en: "Drink beer"}],
+        ["皮鞋", "píxié", "leather shoes", "👞", {cn: "穿皮鞋", py: "chuān pí xié", en: "Wear leather shoes"}],
+        ["瓶子", "píngzi", "bottle", "🍾", {cn: "一瓶水", py: "yī píng shuǐ", en: "One bottle of water"}],
+        ["其实", "qíshí", "actually", "🤷", {cn: "其实很好", py: "qí shí hěn hǎo", en: "Actually very good"}],
+        ["其他", "qítā", "Other", "➕", {cn: "其他东西", py: "qí tā dōng xi", en: "Other things"}],
+        ["骑", "qí", "ride", "🚲", {cn: "骑自行车", py: "qí zì xíng chē", en: "Ride bike"}],
+        ["奇怪", "qíguài", "strange", "🤨", {cn: "很奇怪", py: "hěn qí guài", en: "Very strange"}],
+        ["起来", "qǐlái", "get up", "⏰", {cn: "起来吧", py: "qǐ lái ba", en: "Get up"}],
+        ["起飞", "qǐfēi", "take off", "✈️", {cn: "飞机起飞", py: "fēi jī qǐ fēi", en: "Plane takes off"}],
+        ["清楚", "qīngchu", "clear", "🔍", {cn: "很清楚", py: "hěn qīng chu", en: "Very clear"}],
+        ["请假", "qǐngjià", "ask for leave", "📅", {cn: "请假一天", py: "qǐng jià yī tiān", en: "Ask for leave one day"}],
+        ["秋", "qiū", "autumn", "🍁", {cn: "秋天好", py: "qiū tiān hǎo", en: "Autumn is good"}],
+        ["裙子", "qúnzi", "skirt", "👗", {cn: "穿裙子", py: "chuān qún zi", en: "Wear skirt"}],
+        ["然后", "ránhòu", "Then", "➡️", {cn: "然后去", py: "rán hòu qù", en: "Then go"}],
+        ["热情", "rèqíng", "Enthusiasm", "🔥", {cn: "很热情", py: "hěn rè qíng", en: "Very enthusiastic"}],
+        ["认为", "rènwéi", "think", "🤔", {cn: "我认为好", py: "wǒ rèn wéi hǎo", en: "I think it's good"}],
+        ["认真", "rènzhēn", "earnest", "🧐", {cn: "很认真", py: "hěn rèn zhēn", en: "Very earnest"}],
+        ["容易", "róngyì", "easily", "👍", {cn: "很容易", py: "hěn róng yì", en: "Very easy"}],
+        ["如果", "rúguǒ", "If", "🤔", {cn: "如果去", py: "rú guǒ qù", en: "If go"}],
+        ["伞", "sǎn", "umbrella", "☂️", {cn: "带伞", py: "dài sǎn", en: "Bring umbrella"}],
+        ["上网", "shàngwǎng", "Surf the Internet", "🌐", {cn: "上网看", py: "shàng wǎng kàn", en: "Surf internet to see"}],
+        ["生气", "shēngqì", "get angry", "😠", {cn: "不要生气", py: "bú yào shēng qì", en: "Don't get angry"}],
+        ["声音", "shēngyīn", "voice", "🗣️", {cn: "大声音", py: "dà shēng yīn", en: "Loud voice"}],
+        ["试", "shì", "try", "🧪", {cn: "试一下", py: "shì yí xià", en: "Try a bit"}],
+        ["世界", "shìjiè", "world", "🌍", {cn: "大世界", py: "dà shì jiè", en: "Big world"}],
+        ["瘦", "shòu", "thin", "📏", {cn: "很瘦", py: "hěn shòu", en: "Very thin"}],
+        ["舒服", "shūfu", "comfortable", "😌", {cn: "很舒服", py: "hěn shū fu", en: "Very comfortable"}],
+        ["叔叔", "shūshu", "uncle", "👨", {cn: "叔叔好", py: "shū shu hǎo", en: "Hello uncle"}],
+        ["树", "shù", "tree", "🌳", {cn: "大树", py: "dà shù", en: "Big tree"}],
+        ["数学", "shùxué", "Mathematics", "➗", {cn: "学数学", py: "xué shù xué", en: "Study math"}],
+        ["刷牙", "shuāyá", "Brush one's teeth", "🪥", {cn: "刷牙好", py: "shuā yá hǎo", en: "Brush teeth good"}],
+        ["双", "shuāng", "double, pair", "👥", {cn: "一双鞋", py: "yī shuāng xié", en: "A pair of shoes"}],
+        ["水平", "shuǐpíng", "level", "📏", {cn: "高水平", py: "gāo shuǐ píng", en: "High level"}],
+        ["司机", "sījī", "Driver", "🚗", {cn: "好司机", py: "hǎo sī jī", en: "Good driver"}],
+        ["太阳", "tàiyáng", "sun", "☀️", {cn: "大太阳", py: "dà tài yáng", en: "Big sun"}],
+        ["特别", "tèbié", "Especially", "⭐", {cn: "特别好", py: "tè bié hǎo", en: "Especially good"}],
+        ["疼", "téng", "hurt", "🤕", {cn: "头疼", py: "tóu téng", en: "Head hurts"}],
+        ["提高", "tígāo", "increase", "📈", {cn: "提高水平", py: "tí gāo shuǐ píng", en: "Increase level"}],
+        ["体育", "tǐyù", "Sports", "⚽", {cn: "做体育", py: "zuò tǐ yù", en: "Do sports"}],
+        ["甜", "tián", "sweet", "🍬", {cn: "很甜", py: "hěn tián", en: "Very sweet"}],
+        ["条", "tiáo", "strip", "📏", {cn: "一条路", py: "yī tiáo lù", en: "One strip road"}],
+        ["同事", "tóngshì", "Colleague", "👥", {cn: "好同事", py: "hǎo tóng shì", en: "Good colleague"}],
+        ["同意", "tóngyì", "Agree", "👍", {cn: "我同意", py: "wǒ tóng yì", en: "I agree"}],
+        ["头发", "tóufa", "Hair", "💇", {cn: "长头发", py: "cháng tóu fa", en: "Long hair"}],
+        ["突然", "tūrán", "suddenly", "⚡", {cn: "突然来了", py: "tū rán lái le", en: "Suddenly came"}],
+        ["图书馆", "túshūguǎn", "Library", "📚", {cn: "去图书馆", py: "qù tú shū guǎn", en: "Go to library"}],
+        ["腿", "tuǐ", "leg", "🦵", {cn: "长腿", py: "cháng tuǐ", en: "Long leg"}],
+        ["完成", "wánchéng", "complete", "🏁", {cn: "完成工作", py: "wán chéng gōng zuò", en: "Complete work"}],
+        ["碗", "wǎn", "bowl", "🥣", {cn: "一碗饭", py: "yī wǎn fàn", en: "One bowl of rice"}],
+        ["万", "wàn", "ten thousand", "🔢", {cn: "一万块", py: "yī wàn kuài", en: "Ten thousand yuan"}],
+        ["忘记", "wàngjì", "forget", "🤦", {cn: "不要忘记", py: "bú yào wàng jì", en: "Don't forget"}],
+        ["为", "wèi", "for", "➡️", {cn: "为你好", py: "wèi nǐ hǎo", en: "For you good"}],
+        ["为了", "wèile", "in order to", "🎯", {cn: "为了学习", py: "wèi le xué xí", en: "In order to study"}],
+        ["位", "wèi", "position", "🪑", {cn: "一个位", py: "yī gè wèi", en: "One position"}],
+        ["文化", "wénhuà", "Culture", "🎎", {cn: "中国文化", py: "zhōng guó wén huà", en: "Chinese culture"}],
+        ["西", "xī", "west", "⬅️", {cn: "去西边", py: "qù xī bian", en: "Go west"}],
+        ["习惯", "xíguàn", "Habit", "🔄", {cn: "好习惯", py: "hǎo xí guàn", en: "Good habit"}],
+        ["洗手间", "xǐshǒujiān", "Restroom", "🚽", {cn: "去洗手间", py: "qù xǐ shǒu jiān", en: "Go to restroom"}],
+        ["洗澡", "xǐzǎo", "Take a shower", "🚿", {cn: "洗澡好", py: "xǐ zǎo hǎo", en: "Take shower good"}],
+        ["夏", "xià", "summer", "☀️", {cn: "夏天热", py: "xià tiān rè", en: "Summer is hot"}],
+        ["先", "xiān", "first", "🥇", {cn: "先去", py: "xiān qù", en: "Go first"}],
+        ["香蕉", "xiāngjiāo", "Banana", "🍌", {cn: "吃香蕉", py: "chī xiāng jiāo", en: "Eat banana"}],
+        ["相信", "xiāngxìn", "believe", "🙏", {cn: "我相信", py: "wǒ xiāng xìn", en: "I believe"}],
+        ["向", "xiàng", "towards", "➡️", {cn: "向右走", py: "xiàng yòu zǒu", en: "Towards right"}],
+        ["像", "xiàng", "image", "🖼️", {cn: "像猫", py: "xiàng māo", en: "Like cat"}],
+        ["小心", "xiǎoxīn", "watch out", "⚠️", {cn: "小心点", py: "xiǎo xīn diǎn", en: "Watch out"}],
+        ["校长", "xiàozhǎng", "Principal", "👨‍🏫", {cn: "校长好", py: "xiào zhǎng hǎo", en: "Hello principal"}],
+        ["新闻", "xīnwén", "news", "📰", {cn: "看新闻", py: "kàn xīn wén", en: "Watch news"}],
+        ["新鲜", "xīnxiān", "fresh", "🥦", {cn: "新鲜水果", py: "xīn xiān shuǐ guǒ", en: "Fresh fruit"}],
+        ["信用卡", "xìnyòngkǎ", "Credit card", "💳", {cn: "用信用卡", py: "yòng xìn yòng kǎ", en: "Use credit card"}],
+        ["行李箱", "xínglixiāng", "Trunk", "🧳", {cn: "带行李箱", py: "dài xíng li xiāng", en: "Bring trunk"}],
+        ["熊猫", "xióngmāo", "Panda", "🐼", {cn: "看熊猫", py: "kàn xióng māo", en: "See panda"}],
+        ["需要", "xūyào", "Need", "🤲", {cn: "我需要", py: "wǒ xū yào", en: "I need"}],
+        ["选择", "xuǎnzé", "Choice", "🤔", {cn: "选择好", py: "xuǎn zé hǎo", en: "Choose good"}],
+        ["要求", "yāoqiú", "Requirement", "📋", {cn: "有要求", py: "yǒu yāo qiú", en: "Have requirement"}],
+        ["爷爷", "yéye", "grandpa", "👴", {cn: "爷爷好", py: "yé ye hǎo", en: "Hello grandpa"}],
+        ["一定", "yídìng", "Certain", "✅", {cn: "一定去", py: "yí dìng qù", en: "Certainly go"}],
+        ["一共", "yígòng", "Altogether", "🔢", {cn: "一共十块", py: "yī gòng shí kuài", en: "Altogether ten yuan"}],
+        ["一会儿", "yíhuìr", "a while", "⏳", {cn: "等一会儿", py: "děng yī huìr", en: "Wait a while"}],
+        ["一样", "yíyàng", "equally", "⚖️", {cn: "一样好", py: "yī yàng hǎo", en: "Equally good"}],
+        ["以前", "yǐqián", "before", "🕰️", {cn: "以前去了", py: "yǐ qián qù le", en: "Went before"}],
+        ["一般", "yìbān", "commonly", "🤷", {cn: "一般好", py: "yì bān hǎo", en: "Commonly good"}],
+        ["一边", "yìbiān", "One side", "➡️", {cn: "一边走", py: "yī biān zǒu", en: "One side walk"}],
+        ["一直", "yìzhí", "always", "🔄", {cn: "一直好", py: "yī zhí hǎo", en: "Always good"}],
+        ["音乐", "yīnyuè", "Music", "🎵", {cn: "听音乐", py: "tīng yīn yuè", en: "Listen to music"}],
+        ["银行", "yínháng", "Bank", "🏦", {cn: "去银行", py: "qù yín háng", en: "Go to bank"}],
+        ["饮料", "yǐnliào", "Drinks", "🥤", {cn: "喝饮料", py: "hē yǐn liào", en: "Drink drinks"}],
+        ["应该", "yīnggāi", "Should", "✅", {cn: "应该去", py: "yīng gāi qù", en: "Should go"}],
+        ["影响", "yǐngxiǎng", "Influence", "🌊", {cn: "大影响", py: "dà yǐng xiǎng", en: "Big influence"}],
+        ["用", "yòng", "use", "🛠️", {cn: "用笔", py: "yòng bǐ", en: "Use pen"}],
+        ["游戏", "yóuxì", "Game", "🎮", {cn: "玩游戏", py: "wán yóu xì", en: "Play game"}],
+        ["有名", "yǒumíng", "Famous", "⭐", {cn: "有名人", py: "yǒu míng ren", en: "Famous person"}],
+        ["又", "yòu", "again", "♻️", {cn: "又来了", py: "yòu lái le", en: "Came again"}],
+        ["遇到", "yùdào", "encounter", "🤝", {cn: "遇到朋友", py: "yù dào péng you", en: "Encounter friend"}],
+        ["元", "yuán", "element; yuan", "💰", {cn: "十元", py: "shí yuán", en: "Ten yuan"}],
+        ["愿意", "yuànyì", "Be willing", "👍", {cn: "我愿意", py: "wǒ yuàn yì", en: "I am willing"}],
+        ["月亮", "yuèliang", "Moon", "🌙", {cn: "看月亮", py: "kàn yuè liang", en: "See moon"}],
+        ["越", "yuè", "the more", "📈", {cn: "越来越好", py: "yuè lái yuè hǎo", en: "More and more good"}],
+        ["站", "zhàn", "station", "🚉", {cn: "火车站", py: "huǒ chē zhàn", en: "Train station"}],
+        ["张", "zhāng", "Zhang (surname)", "👤", {cn: "张老师", py: "zhāng lǎo shī", en: "Teacher Zhang"}],
+        ["长（动词）", "zhǎng", "grow", "🌱", {cn: "长大", py: "zhǎng dà", en: "Grow up"}],
+        ["着急", "zháojí", "Worry", "😟", {cn: "不要着急", py: "bú yào zháo jí", en: "Don't worry"}],
+        ["照顾", "zhàogù", "look after", "🤗", {cn: "照顾孩子", py: "zhào gù hái zi", en: "Look after child"}],
+        ["照片", "zhàopiàn", "Photo", "📸", {cn: "看照片", py: "kàn zhào piàn", en: "See photo"}],
+        ["照相机", "zhàoxiàngjī", "Camera", "📷", {cn: "用照相机", py: "yòng zhào xiàng jī", en: "Use camera"}],
+        ["只（量词）", "zhī", "(measure word)", "📏", {cn: "一只猫", py: "yī zhī māo", en: "One cat"}],
+        ["只（副词）", "zhǐ", "only", "1️⃣", {cn: "只有一", py: "zhǐ yǒu yī", en: "Only one"}],
+        ["只有……才……", "zhǐyǒu…cái…", "only if", "🤷", {cn: "只有好才去", py: "zhǐ yǒu hǎo cái qù", en: "Only if good then go"}],
+        ["中文", "zhōngwén", "Chinese", "🇨🇳", {cn: "学中文", py: "xué zhōng wén", en: "Study Chinese"}],
+        ["中间", "zhōngjiān", "Middle", "↔️", {cn: "在中间", py: "zài zhōng jiān", en: "In the middle"}],
+        ["终于", "zhōngyú", "finally", "🏁", {cn: "终于到了", py: "zhōng yú dào le", en: "Finally arrived"}],
+        ["种", "zhǒng", "species", "🌿", {cn: "一种花", py: "yī zhǒng huā", en: "One species of flower"}],
+        ["重要", "zhòngyào", "important", "❗", {cn: "很重要", py: "hěn zhòng yào", en: "Very important"}],
+        ["周末", "zhōumò", "Weekend", "📅", {cn: "周末快乐", py: "zhōu mò kuài lè", en: "Happy weekend"}],
+        ["主要", "zhǔyào", "main", "🔑", {cn: "主要问题", py: "zhǔ yào wèn tí", en: "Main problem"}],
+        ["注意", "zhùyì", "Be careful", "⚠️", {cn: "注意看", py: "zhù yì kàn", en: "Be careful to see"}],
+        ["自己", "zìjǐ", "Own, self", "👤", {cn: "自己去", py: "zì jǐ qù", en: "Go by self"}],
+        ["自行车", "zìxíngchē", "Bicycle", "🚲", {cn: "骑自行车", py: "qí zì xíng chē", en: "Ride bicycle"}],
+        ["总是", "zǒngshì", "always", "🔄", {cn: "总是好", py: "zǒng shì hǎo", en: "Always good"}],
+        ["嘴", "zuǐ", "mouth", "👄", {cn: "大嘴", py: "dà zuǐ", en: "Big mouth"}],
+        ["最后", "zuìhòu", "Last", "🏁", {cn: "最后去", py: "zuì hòu qù", en: "Go last"}],
+        ["最近", "zuìjìn", "lately", "🕒", {cn: "最近好", py: "zuì jìn hǎo", en: "Lately good"}],
+        ["作业", "zuòyè", "homework", "📝", {cn: "做作业", py: "zuò zuò yè", en: "Do homework"}]
+    ];
+
+    let currentMode = 'study', currentIndex = 0, score = 0, timer = null;
+    let mistakes = [];
+
+    const instructions = {
+        study: "📖 Learn: 1:1 aligned pinyin and audio.",
+        review: "🔄 Review: Reveal sentences with the eye icon.",
+        quiz: "⚡ Quiz: Test your HSK 3 knowledge.",
+        rush: "🔥 Rush: 30 seconds to answer as many as you can!",
+        mistakes: "❌ Error: Focus on the words you missed.",
+        list: "📜 List: Click any word to learn its card."
+    };
+
+    // 音效函数
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        if (type === 'correct') {
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+            osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1);
+        } else {
+            osc.frequency.setValueAtTime(220, audioCtx.currentTime); // A3
+            osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.2);
+        }
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.stop(audioCtx.currentTime + 0.3);
+    }
+
+    function enterApp() {
+        document.getElementById('cover-page').style.opacity = '0';
+        setTimeout(() => { document.getElementById('cover-page').style.visibility = 'hidden'; }, 800);
+        setMode('study');
+    }
+
+    function changeMode(m) {
+        currentIndex = 0;
+        setMode(m);
+    }
+
+    function setMode(m) {
+        currentMode = m; clearInterval(timer);
+        document.querySelectorAll('.nav-btns button, #btn-list').forEach(b => b.classList.remove('active-mode'));
+        const activeBtn = document.getElementById('btn-' + m);
+        if(activeBtn) activeBtn.classList.add('active-mode');
+        
+        document.getElementById('mode-instruction').innerText = instructions[m] || "";
+        document.getElementById('timer-display').classList.add('hidden');
+        
+        if(m === 'list') {
+            document.getElementById('main-ui').classList.add('hidden');
+            document.getElementById('scroll-view').style.display = 'block';
+            renderList();
+        } else {
+            document.getElementById('main-ui').classList.remove('hidden');
+            document.getElementById('scroll-view').style.display = 'none';
+            if (m === 'rush') startRush();
+            render();
+        }
+    }
+
+    function startRush() {
+        let timeLeft = 30; score = 0; currentIndex = Math.floor(Math.random() * database.length);
+        document.getElementById('score-val').innerText = "0";
+        const display = document.getElementById('timer-display');
+        display.classList.remove('hidden');
+        timer = setInterval(() => {
+            timeLeft--;
+            display.innerText = `00:${timeLeft < 10 ? '0'+timeLeft : timeLeft}`;
+            if (timeLeft <= 0) { clearInterval(timer); alert("Time up! Score: " + score); setMode('study'); }
+        }, 1000);
+    }
+
+    function generate1to1Html(text, pinyinStr) {
+        const chars = text.split(''); const pys = pinyinStr.split(' ');
+        let html = '<div class="sentence-container">';
+        let pyIdx = 0;
+        chars.forEach(c => {
+            if(/[\u4e00-\u9fa5]/.test(c)) {
+                html += `<div class="word-unit"><div class="py-text">${pys[pyIdx] || ''}</div><div class="zh-text">${c}</div></div>`;
+                pyIdx++;
+            } else if(c !== ' ') {
+                html += `<div class="word-unit"><div class="py-text"></div><div class="zh-text">${c}</div></div>`;
+            }
+        });
+        html += '</div>';
+        return html;
+    }
+
+    function render() {
+        const display = document.getElementById('display-area');
+        const interaction = document.getElementById('interaction-area');
+        const hint = document.getElementById('hint-box');
+        let activeList = (currentMode === 'mistakes') ? mistakes : database;
+        
+        if (activeList.length === 0 && currentMode === 'mistakes') {
+            display.innerHTML = "<h2>No errors yet!</h2>";
+            interaction.innerHTML = `<button class="option-btn" onclick="setMode('study')">Back to Learn</button>`;
+            return;
+        }
+
+        const item = activeList[currentIndex];
+        document.getElementById('emoji-display').innerText = item[3];
+        interaction.innerHTML = ""; 
+        hint.className = "hidden";
+
+        if(currentMode === 'study' || currentMode === 'review') {
+            display.innerHTML = generate1to1Html(item[0], item[1]) + `<div class="eng-translation">${item[2]}</div>`;
+            hint.innerHTML = `<div onclick="speakText('${item[4].cn}')" style="cursor:pointer;">${generate1to1Html(item[4].cn, item[4].py)}</div><div style="font-size:18px; color:#666; font-style:italic; margin-top:5px;">${item[4].en}</div>`;
+            
+            if(currentMode === 'study') {
+                hint.classList.remove('hidden');
+                speakItem(false);
+            } else {
+                interaction.innerHTML = `<button class="option-btn" onclick="document.getElementById('hint-box').classList.toggle('hidden')">👁️ Show Example</button>`;
+            }
+            interaction.innerHTML += `<button class="option-btn" onclick="nextCard()" style="background:var(--primary); color:white;">Next →</button>`;
+        } else {
+            const isEnToCn = Math.random() > 0.5;
+            let quest = isEnToCn ? item[2] : item[0];
+            let ans = isEnToCn ? item[0] : item[2];
+            display.innerHTML = `<h2 style="font-size:42px; color:var(--primary);">${quest}</h2>`;
+            let choices = [ans];
+            while(choices.length < 4) {
+                let r = database[Math.floor(Math.random()*database.length)];
+                let val = isEnToCn ? r[0] : r[2];
+                if(!choices.includes(val)) choices.push(val);
+            }
+            choices.sort(() => Math.random() - 0.5);
+            choices.forEach(c => {
+                const b = document.createElement('button'); b.className = 'option-btn'; b.innerText = c;
+                b.onclick = () => {
+                    if(c === ans) {
+                        playSound('correct');
+                        score += 10; document.getElementById('score-val').innerText = score;
+                        b.style.background = "#4caf50"; b.style.color = "white"; 
+                        setTimeout(nextCard, 500);
+                    } else { 
+                        playSound('wrong');
+                        b.style.background = "#f44336"; b.style.color = "white";
+                        if (!mistakes.includes(item)) mistakes.push(item);
+                    }
+                };
+                interaction.appendChild(b);
+            });
+        }
+    }
+
+    function nextCard() {
+        if (currentMode === 'rush') {
+            currentIndex = Math.floor(Math.random() * database.length);
+        } else {
+            let activeList = (currentMode === 'mistakes') ? mistakes : database;
+            currentIndex = (currentIndex + 1) % activeList.length;
+        }
+        render();
+    }
+
+    function renderList() {
+        const view = document.getElementById('scroll-view');
+        view.innerHTML = "<h2>📜 HSK 3 Master List</h2><p style='color:#666;'>Tap any word to view its card.</p>";
+        database.forEach((it, idx) => {
+            const r = document.createElement('div'); r.className = 'list-row';
+            r.innerHTML = `<div style="font-size: 18px; width: 40px; color: #999;">${idx+1}</div>
+                <div style="font-size: 30px; margin-right: 20px;">${it[3]}</div>
+                <div style="flex: 1;"><span style="font-size:24px; font-weight:bold;">${it[0]}</span> 
+                <span style="color:var(--pinyin); font-weight:bold; margin-left:10px;">[ ${it[1]} ]</span> 
+                <div style="color:#666;">${it[2]}</div></div>`;
+            r.onclick = () => {
+                currentIndex = idx;
+                setMode('study');
+            };
+            view.appendChild(r);
+        });
+    }
+
+    function speakText(text) {
+        window.speechSynthesis.cancel();
+        const m = new SpeechSynthesisUtterance(text);
+        m.lang = 'zh-CN'; m.rate = 0.8;
+        window.speechSynthesis.speak(m);
+    }
+
+    function speakItem(withEx) {
+        const item = database[currentIndex];
+        speakText(item[0]);
+        if(withEx) setTimeout(() => speakText(item[4].cn), 1000);
+    }
+</script>
+</body>
+</html>
