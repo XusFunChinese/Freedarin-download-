@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>Let the Bullets Fly: Cultural Decoding - XUSFUNCHINESE</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@700;900&display=swap');
+
+        :root {
+            --republican-red: #8B0000;
+            --bullet-gold: #FFD700; /* 调亮了金色 */
+            --ink-black: #1A1A1A;
+            --paper-bg: #E3DAC9;
+            --pinyin-red: #FF0000;
+        }
+
+        body {
+            margin: 0; padding: 0; background: #000;
+            font-family: 'Noto Serif SC', serif;
+            display: flex; justify-content: center; align-items: center; height: 100vh;
+            overflow: hidden; cursor: pointer;
+        }
+
+        #ppt-container {
+            width: 95vw; 
+            height: 53.44vw; 
+            max-height: 95vh;
+            max-width: 168.88vh; 
+            border: 5px double var(--bullet-gold);
+            position: relative; overflow: hidden;
+            background-color: var(--paper-bg);
+            box-shadow: 0 0 80px rgba(0,0,0,1);
+        }
+
+        .smoke-layer {
+            position: absolute; width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+            pointer-events: none; z-index: 2;
+        }
+
+        .slide {
+            display: none; width: 100%; height: 100%;
+            position: relative; background-size: cover; background-position: center;
+        }
+        .slide.active { display: block; }
+
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(90deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.95) 100%);
+            z-index: 5;
+        }
+
+        /* --- 强化版引导页样式 --- */
+        .intro-text {
+            color: var(--bullet-gold);
+            font-size: 4.5vw;
+            font-weight: 900;
+            text-transform: uppercase;
+            line-height: 1.1;
+            opacity: 0;
+            transform: scale(5);
+            filter: blur(20px);
+            animation: textImpact 0.6s 0.2s cubic-bezier(0.17, 0.84, 0.44, 1) forwards;
+            z-index: 25;
+            /* 强力黑影增强对比度 */
+            text-shadow: 0 0 20px rgba(0,0,0,1), 5px 5px 0px rgba(0,0,0,0.8);
+        }
+
+        @keyframes textImpact {
+            to { opacity: 1; transform: scale(1); filter: blur(0); }
+        }
+
+        .bullet-hole {
+            position: absolute;
+            width: 80px; height: 80px;
+            background: url('https://www.transparentpng.com/download/bullet-hole/bullet-hole-png-images-9.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0;
+            z-index: 30;
+        }
+
+        .active .hole-1 { animation: shot 0.1s 0.8s forwards; left: 15%; top: 25%; }
+        .active .hole-2 { animation: shot 0.1s 1.0s forwards; right: 20%; top: 55%; }
+        .active .hole-3 { animation: shot 0.1s 1.2s forwards; left: 45%; bottom: 15%; }
+
+        @keyframes shot {
+            0% { transform: scale(4); opacity: 0; filter: brightness(5) sepia(1) saturate(10) hue-rotate(-50deg); }
+            100% { transform: scale(1); opacity: 0.9; filter: brightness(1); }
+        }
+
+        /* --- 封面样式 --- */
+        .cover-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 20; width: 100%;}
+        .active .cover-title-cn {
+            font-family: 'Ma Shan Zheng', cursive; font-size: 140px; color: var(--republican-red);
+            text-shadow: 10px 10px 25px rgba(0,0,0,0.8);
+            animation: titleFlyIn 0.8s cubic-bezier(0.15, 0.85, 0.35, 1.2) forwards; 
+            opacity: 0; letter-spacing: 20px;
+        }
+        @keyframes titleFlyIn { 
+            0% { opacity: 0; transform: scale(5) translateY(-100px); filter: blur(20px); } 
+            100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); } 
+        }
+
+        /* --- 通用内容样式 --- */
+        .content-wrap {
+            position: relative; width: 100%; height: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 5%; box-sizing: border-box; z-index: 10;
+        }
+
+        .content-left { width: 50%; display: flex; flex-direction: column; gap: 12px; }
+        
+        h1 {
+            color: var(--bullet-gold); font-size: 2.5vw; font-weight: 900; 
+            margin: 0 0 10px 0; border-bottom: 3px solid var(--republican-red); 
+            padding-bottom: 5px; width: fit-content;
+        }
+
+        .content-item {
+            color: #fff; font-size: 1.3vw; font-weight: bold; line-height: 1.4;
+            padding: 10px 15px; background: rgba(0, 0, 0, 0.8); 
+            border-left: 5px solid var(--bullet-gold); opacity: 0; transform: translateX(-30px);
+        }
+        .active .content-item:nth-child(n) { animation: quickReveal 0.4s forwards; }
+        .active .content-item:nth-child(1) { animation-delay: 0.1s; }
+        .active .content-item:nth-child(2) { animation-delay: 0.2s; }
+        .active .content-item:nth-child(3) { animation-delay: 0.3s; }
+        .active .content-item:nth-child(4) { animation-delay: 0.4s; }
+        @keyframes quickReveal { to { opacity: 1; transform: translateX(0); } }
+
+        .sidebar-right { width: 40%; display: flex; justify-content: center; }
+        .vocab-card {
+            background: #fffdf5; padding: 20px; border-radius: 4px;
+            box-shadow: 15px 15px 40px rgba(0,0,0,0.8); border: 2px solid var(--ink-black);
+            width: 90%; max-width: 400px;
+            animation: cardSlide 0.5s 0.6s ease-out both;
+        }
+        @keyframes cardSlide { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        .v-main { text-align: center; margin-bottom: 10px; border-bottom: 2px solid var(--republican-red); padding-bottom: 5px; }
+        .v-word { font-size: 36px; font-weight: 900; color: #000; }
+        .v-pinyin { font-size: 18px; color: var(--pinyin-red); font-weight: 900; display: block; }
+        
+        .quote-tag { font-size: 12px; background: var(--republican-red); color: #fff; padding: 2px 8px; margin: 8px 0; display: inline-block; font-weight: 900; }
+
+        .example-box { display: flex; flex-direction: row; justify-content: center; gap: 6px; margin: 10px 0; flex-wrap: wrap; }
+        .char-unit { display: flex; flex-direction: column-reverse; align-items: center; }
+        .c-pinyin { color: var(--pinyin-red); font-size: 13px; font-weight: 900; margin-bottom: 2px; }
+        .c-hanzi { font-size: 24px; color: #000; font-weight: 900; }
+        
+        .eng-sub { font-size: 16px; color: #333; font-weight: bold; text-align: center; border-top: 1px dashed #bbb; padding-top: 10px; margin-top: 10px; }
+
+        .vocab-list-container {
+            width: 90%; height: 80%; background: rgba(255, 253, 245, 0.95);
+            margin: auto; overflow-y: auto; padding: 30px; border: 4px double var(--republican-red);
+            box-sizing: border-box; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+        }
+        .list-item { border-bottom: 1px solid #ccc; padding: 10px 0; }
+        .list-cn { font-size: 22px; font-weight: 900; color: #000; }
+        .list-py { font-size: 14px; color: var(--pinyin-red); font-weight: 900; margin: 2px 0; }
+        .list-en { font-size: 14px; color: #555; font-style: italic; }
+
+        .controls { position: absolute; bottom: 3%; left: 5%; z-index: 100; display: flex; gap: 15px; }
+        button { padding: 10px 25px; background: var(--republican-red); color: #fff; border: 2px solid var(--bullet-gold); cursor: pointer; font-size: 12px; font-weight: 900; }
+        
+        .watermark { position: absolute; top: 4%; right: 5%; color: var(--bullet-gold); font-size: 1.5vw; font-weight: 900; opacity: 0.4; }
+    </style>
+</head>
+<body onclick="change(1)">
+
+    <audio id="bgm" loop src="https://assets.mixkit.co/active_storage/sfx/1231/1231-preview.mp3"></audio>
+
+    <div id="ppt-container">
+        <div class="watermark">XUSFUNCHINESE</div>
+        <div class="smoke-layer"></div>
+
+        <div class="slide active" style="background-color: #050505;">
+            <div class="overlay" style="background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.9) 100%);"></div>
+            <div class="cover-content">
+                <div class="intro-text">
+                    Learn 7 Powerful Sentences<br>
+                    <span style="color:var(--pinyin-red); font-size: 5vw;">From This Wild Chinese Movie!</span>
+                </div>
+            </div>
+            <div class="bullet-hole hole-1"></div>
+            <div class="bullet-hole hole-2"></div>
+            <div class="bullet-hole hole-3"></div>
+        </div>
+
+        <div class="slide" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Chinese_train_1930s.jpg/1280px-Chinese_train_1930s.jpg')">
+            <div class="overlay" style="background: rgba(0,0,0,0.6);"></div>
+            <div class="cover-content">
+                <div class="cover-title-cn">让子弹飞</div>
+                <div style="color:var(--bullet-gold); font-size:2vw; letter-spacing:10px; margin-top:20px; font-weight:900;">LET THE BULLETS FLY</div>
+            </div>
+        </div>
+
+        <div class="slide" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Zili_Village_Diaolou.JPG/1280px-Zili_Village_Diaolou.JPG')">
+            <div class="overlay"></div>
+            <div class="content-wrap">
+                <div class="content-left">
+                    <h1>Part 1 — Introduction</h1>
+                    <div class="content-item">The most rewatchable domestic movie in China.</div>
+                    <div class="content-item">Directed by Jiang Wen, released in 2010.</div>
+                    <div class="content-item">A decade later, the debate over its meaning continues.</div>
+                    <div class="content-item">A cultural icon of power, satire, and revolution.</div>
+                </div>
+                <div class="sidebar-right">
+                    <div class="vocab-card">
+                        <div class="v-main"><span class="v-word">申遗</span><span class="v-pinyin">shēnyí</span></div>
+                        <div class="quote-tag">🏷️ FAN COMMENT</div>
+                        <div class="eng-sub">"This film belongs in the World Heritage List."</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Old_Shanghai_1920s.jpg/1280px-Old_Shanghai_1920s.jpg')">
+            <div class="overlay"></div>
+            <div class="content-wrap">
+                <div class="content-left">
+                    <h1>Part 2 — The Initial Shock</h1>
+                    <div class="content-item">Audience reaction: “This movie is pure fun.”</div>
+                    <div class="content-item">Western-style action comedy with constant tension.</div>
+                    <div class="content-item">But after the laughter, something deeper lingers.</div>
+                    <div class="content-item">It dissects the true mechanics of social power.</div>
+                </div>
+                <div class="sidebar-right">
+                    <div class="vocab-card">
+                        <div class="v-main"><span class="v-word">霸气外露</span><span class="v-pinyin">bàqì wàilù</span></div>
+                        <div class="quote-tag">🕶️ THE VIBE</div>
+                        <div class="example-box">
+                            <div class="char-unit"><span class="c-hanzi">霸</span><span class="c-pinyin">bà</span></div>
+                            <div class="char-unit"><span class="c-hanzi">气</span><span class="c-pinyin">qì</span></div>
+                            <div class="char-unit"><span class="c-hanzi">外</span><span class="c-pinyin">wài</span></div>
+                            <div class="char-unit"><span class="c-hanzi">露</span><span class="c-pinyin">lù</span></div>
+                        </div>
+                        <div class="eng-sub">"Dominance leaking out."</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Kaiping_Diaolou.jpg/1280px-Kaiping_Diaolou.jpg')">
+            <div class="overlay"></div>
+            <div class="content-wrap">
+                <div class="content-left">
+                    <h1>Part 3 — The Story Setup</h1>
+                    <div class="content-item">Zhang Mazhi, a bandit, poses as a county magistrate.</div>
+                    <div class="content-item">He enters Goose City, ruled by the tyrant Huang Silang.</div>
+                    <div class="content-item">A fight for justice, wealth, and control of the town.</div>
+                    <div class="content-item">Who defines the rules of the system?</div>
+                </div>
+                <div class="sidebar-right">
+                    <div class="vocab-card">
+                        <div class="v-main"><span class="v-word">站着挣钱</span><span class="v-pinyin">zhànzhe zhèngqián</span></div>
+                        <div class="quote-tag">💰 THE GOAL</div>
+                        <div class="example-box">
+                            <div class="char-unit"><span class="c-hanzi">站</span><span class="c-pinyin">zhàn</span></div>
+                            <div class="char-unit"><span class="c-hanzi">着</span><span class="c-pinyin">zhe</span></div>
+                            <div class="char-unit"><span class="c-hanzi">挣</span><span class="c-pinyin">zhèng</span></div>
+                            <div class="char-unit"><span class="c-hanzi">钱</span><span class="c-pinyin">qián</span></div>
+                        </div>
+                        <div class="eng-sub">"Make money while standing tall."</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Republic_of_China_Constitution.jpg/800px-Republic_of_China_Constitution.jpg')">
+            <div class="overlay"></div>
+            <div class="content-wrap">
+                <div class="content-left">
+                    <h1>Part 4 — Moral Ambiguity</h1>
+                    <div class="content-item">The film refuses to provide clear heroes or villains.</div>
+                    <div class="content-item">A satire of feudal power and modern bureaucracy.</div>
+                    <div class="content-item">Interpretation changes based on your own life stage.</div>
+                    <div class="content-item">The movie asks: Where are you standing in this story?</div>
+                </div>
+                <div class="sidebar-right">
+                    <div class="vocab-card">
+                        <div class="v-main"><span class="v-word">杀人诛心</span><span class="v-pinyin">shārén zhūxīn</span></div>
+                        <div class="quote-tag">🧠 MIND GAMES</div>
+                        <div class="example-box">
+                            <div class="char-unit"><span class="c-hanzi">杀</span><span class="c-pinyin">shā</span></div>
+                            <div class="char-unit"><span class="c-hanzi">人</span><span class="c-pinyin">rén</span></div>
+                            <div class="char-unit"><span class="c-hanzi">诛</span><span class="c-pinyin">zhū</span></div>
+                            <div class="char-unit"><span class="c-hanzi">心</span><span class="c-pinyin">xīn</span></div>
+                        </div>
+                        <div class="eng-sub">"Kill the person, but first destroy their spirit."</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Execution_of_Boxers_at_Canton_1900.jpg/1280px-Execution_of_Boxers_at_Canton_1900.jpg')">
+            <div class="overlay"></div>
+            <div class="content-wrap">
+                <div class="content-left">
+                    <h1>Part 5 — The Ordinary People</h1>
+                    <div class="content-item">People follow whoever looks stronger or likely to win.</div>
+                    <div class="content-item">Fear, survival, and incentives shape collective behavior.</div>
+                    <div class="content-item">There is no romanticized "pure crowd" here.</div>
+                </div>
+                <div class="sidebar-right">
+                    <div class="vocab-card">
+                        <div class="v-main"><span class="v-word">谁赢帮谁</span><span class="v-pinyin">shuí yíng bāng shuí</span></div>
+                        <div class="quote-tag">⚖️ REALITY</div>
+                        <div class="example-box">
+                            <div class="char-unit"><span class="c-hanzi">谁</span><span class="c-pinyin">shuí</span></div>
+                            <div class="char-unit"><span class="c-hanzi">赢</span><span class="c-pinyin">yíng</span></div>
+                            <div class="char-unit"><span class="c-hanzi">帮</span><span class="c-pinyin">bāng</span></div>
+                            <div class="char-unit"><span class="c-hanzi">谁</span><span class="c-pinyin">shuí</span></div>
+                        </div>
+                        <div class="eng-sub">"Help whoever is winning."</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Beijing_Qianmen_Gate.jpg/1280px-Beijing_Qianmen_Gate.jpg')">
+            <div class="overlay"></div>
+            <div class="content-wrap">
+                <div class="content-left">
+                    <h1>Part 6 — Satire of Language</h1>
+                    <div class="content-item">“I came for three things: fairness, fairness, fairness!”</div>
+                    <div class="content-item">Slogans can be turned into tools of control.</div>
+                    <div class="content-item">The movie reminds us that language is a weapon.</div>
+                </div>
+                <div class="sidebar-right">
+                    <div class="vocab-card">
+                        <div class="v-main"><span class="v-word">公平</span><span class="v-pinyin">gōngpíng</span></div>
+                        <div class="quote-tag">📢 THE LINE</div>
+                        <div class="example-box">
+                            <div class="char-unit"><span class="c-hanzi">公</span><span class="c-pinyin">gōng</span></div>
+                            <div class="char-unit"><span class="c-hanzi">平</span><span class="c-pinyin">píng</span></div>
+                            <div class="char-unit"><span class="c-hanzi">公</span><span class="c-pinyin">gōng</span></div>
+                            <div class="char-unit"><span class="c-hanzi">平</span><span class="c-pinyin">píng</span></div>
+                            <div class="char-unit"><span class="c-hanzi">公</span><span class="c-pinyin">gōng</span></div>
+                            <div class="char-unit"><span class="c-hanzi">平</span><span class="c-pinyin">píng</span></div>
+                        </div>
+                        <div class="eng-sub">"Fairness, Fairness, and Fairness!"</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Joe_Hisaishi_2008.jpg/1280px-Joe_Hisaishi_2008.jpg')">
+            <div class="overlay"></div>
+            <div class="content-wrap">
+                <div class="content-left">
+                    <h1>Part 7 — The Epic Score</h1>
+                    <div class="content-item">Masterpiece composed by Joe Hisaishi (久石让).</div>
+                    <div class="content-item">"The Sun Also Rises" theme adds a surreal, heroic soul.</div>
+                    <div class="content-item">Brass melodies capture the spirit of the Wild West.</div>
+                    <div class="content-item">Jiang Wen’s films and music are inseparable legends.</div>
+                </div>
+                <div class="sidebar-right">
+                    <div class="vocab-card">
+                        <div class="v-main"><span class="v-word">翻译翻译</span><span class="v-pinyin">fānyì fānyì</span></div>
+                        <div class="quote-tag">🎷 THE RHYTHM</div>
+                        <div class="example-box">
+                            <div class="char-unit"><span class="c-hanzi">翻</span><span class="c-pinyin">fān</span></div>
+                            <div class="char-unit"><span class="c-hanzi">译</span><span class="c-pinyin">yì</span></div>
+                            <div class="char-unit"><span class="c-hanzi">翻</span><span class="c-pinyin">fān</span></div>
+                            <div class="char-unit"><span class="c-hanzi">译</span><span class="c-pinyin">yì</span></div>
+                        </div>
+                        <div class="eng-sub">"Translate it for me!"</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" style="background-color: var(--ink-black);">
+            <div class="overlay" style="background: rgba(0,0,0,0.8);"></div>
+            <div class="content-wrap" style="flex-direction: column; justify-content: center;">
+                <h1 style="border-color: var(--bullet-gold); margin-bottom: 20px;">📜 台词全集 Vocab List Mode</h1>
+                <div class="vocab-list-container">
+                    <div class="list-item"><div class="list-cn">申遗 🏛️</div><div class="list-py">shēnyí</div><div class="list-en">World Heritage nomination.</div></div>
+                    <div class="list-item"><div class="list-cn">霸气外露 🕶️</div><div class="list-py">bàqì wàilù</div><div class="list-en">Dominance leaking out.</div></div>
+                    <div class="list-item"><div class="list-cn">站着挣钱 💰</div><div class="list-py">zhànzhe zhèngqián</div><div class="list-en">Make money while standing tall.</div></div>
+                    <div class="list-item"><div class="list-cn">杀人诛心 🧠</div><div class="list-py">shārén zhūxīn</div><div class="list-en">Kill the person, destroy the spirit.</div></div>
+                    <div class="list-item"><div class="list-cn">让子弹飞一会儿 🔫</div><div class="list-py">ràng zǐdàn fēi yīhuìr</div><div class="list-en">Let the bullets fly for a while.</div></div>
+                    <div class="list-item"><div class="list-cn">谁赢帮谁 ⚖️</div><div class="list-py">shuí yíng bāng shuí</div><div class="list-en">Help whoever is winning.</div></div>
+                    <div class="list-item"><div class="list-cn">公平 📢</div><div class="list-py">gōngpíng</div><div class="list-en">Fairness / Justice.</div></div>
+                    <div class="list-item"><div class="list-cn">路要一步一步走 🚶‍♂️</div><div class="list-py">lù yào yībù yībù zǒu</div><div class="list-en">The road must be walked step by step.</div></div>
+                    <div class="list-item"><div class="list-cn">翻译翻译 🗣️</div><div class="list-py">fānyì fānyì</div><div class="list-en">Translate it!</div></div>
+                    <div class="list-item"><div class="list-cn">如数奉还，三七分账 💸</div><div class="list-py">rúshù fènghuán, sānqī fēnzhàng</div><div class="list-en">Return the full amount, split 30/70.</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide" style="background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Republican_China_soldiers.jpg/800px-Republican_China_soldiers.jpg')">
+            <div class="overlay"></div>
+            <div class="content-wrap" style="flex-direction: column; justify-content: center; text-align: center;">
+                <div class="vocab-card" style="width: 80%; max-width: 600px; margin: 0 auto; padding: 40px;">
+                    <h1 style="border-bottom: 5px solid var(--republican-red); margin: 0 auto 30px auto;">JOIN THE JOURNEY</h1>
+                    <div style="font-size: 2.2vw; font-weight: 900; color: var(--republican-red); margin-bottom: 20px;">
+                        Please subscribe to "Xu's Fun Chinese" on Youtube to learn more!
+                    </div>
+                    <div style="font-size: 1.2vw; color: #555; font-style: italic;">
+                        Decode culture. Master Mandarin. Let the learning fly.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="change(-1, event)">PREV</button>
+            <button onclick="change(1, event)">NEXT</button>
+        </div>
+    </div>
+
+    <script>
+        let cur = 0; 
+        const slides = document.querySelectorAll('.slide');
+        const bgm = document.getElementById('bgm');
+        let bgmStarted = false;
+
+        function change(dir, e) {
+            if (e) e.stopPropagation();
+
+            if(!bgmStarted) {
+                bgm.volume = 0.03;
+                bgm.play().catch(e => console.log("Audio play blocked"));
+                bgmStarted = true;
+            }
+
+            let nextIndex = cur + dir;
+            if (nextIndex >= 0 && nextIndex < slides.length) {
+                slides[cur].classList.remove('active');
+                cur = nextIndex;
+                slides[cur].classList.add('active');
+            } else if (nextIndex === slides.length) {
+                alert("The bullet is still flying...");
+            }
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if(e.key === "ArrowRight") change(1);
+            if(e.key === "ArrowLeft") change(-1);
+        });
+    </script>
+</body>
+</html>
