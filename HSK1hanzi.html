@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+    <title>XUSFUNCHINESE - HSK 500 Writing Mode 🏮</title>
+    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+    <style>
+        :root { 
+            --pinyin-red: #ff3333; /* 更加醒目的红色 */
+            --paper: rgba(255, 255, 255, 0.95); 
+            --gold: #fbc02d; 
+            --accent: #218c74; 
+            --primary: #01579b;
+            --night-sky: radial-gradient(circle at center, #001f3f 0%, #000510 100%);
+        }
+        body { 
+            margin: 0; font-family: "Arial Black", sans-serif; 
+            background: linear-gradient(135deg, #0277bd 0%, #002f6c 100%); 
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative;
+        }
+        #cover-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--night-sky); z-index: 5000; display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; transition: opacity 0.5s;
+        }
+        .star {
+            position: absolute; top: 50%; left: 50%; width: 2px; height: 2px;
+            background: white; border-radius: 50%; animation: shoot linear infinite;
+        }
+        @keyframes shoot {
+            0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(1000px); opacity: 0; width: 100px; }
+        }
+        #app-container { 
+            width: 98vw; height: 94vh; background: var(--paper); 
+            display: flex; margin: auto; border: 6px double var(--primary); 
+            border-radius: 20px; overflow: hidden; z-index: 10;
+        }
+        .sidebar { width: 140px; background: rgba(255,255,255,0.9); border-right: 2px solid var(--primary); display: flex; flex-direction: column; }
+        .sidebar button { padding: 10px; border: none; background: none; font-size: 0.85rem; font-weight: bold; color: var(--primary); cursor: pointer; border-bottom: 1px solid #eee; text-align: left; }
+        .sidebar button.active { background: var(--primary); color: white; }
+        .sidebar-watermark { margin-top: auto; padding-bottom: 10px; text-align: center; font-size: 10px; color: var(--primary); opacity: 0.5; font-weight: bold; }
+        .content { flex: 1; padding: 10px; display: flex; flex-direction: column; align-items: center; overflow-y: auto; position: relative; }
+        #feedback-box { font-size: 1.5rem; height: 1.2em; color: var(--accent); font-weight: bold; margin-bottom: 5px; }
+        .grid-flex { display: flex; gap: 8px; margin: 5px 0; flex-wrap: wrap; justify-content: center; }
+        .tian-wrapper { position: relative; width: 150px; height: 150px; background: #fff; border: 2px solid #8b4513; }
+        .tianzige { position: absolute; width: 100%; height: 100%; pointer-events: none; opacity: 0.2; background: linear-gradient(45deg, transparent 49%, red 50%, transparent 51%), linear-gradient(-45deg, transparent 49%, red 50%, transparent 51%), linear-gradient(to right, transparent 49%, red 50%, transparent 51%), linear-gradient(to bottom, transparent 49%, red 50% ,transparent 51%); }
+        .writer-div { position: absolute; top:0; left:0; width:100%; height:100%; }
+        canvas { position: absolute; top:0; left:0; z-index: 5; touch-action: none; }
+        .btn { padding: 8px 16px; border-radius: 20px; border: none; cursor: pointer; background: var(--primary); color: #fff; font-weight: bold; margin: 5px; }
+        #match-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 98%; }
+        .match-item { background: #fff; padding: 8px; border: 2px solid var(--primary); border-radius: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; min-height: 40px; display: flex; align-items: center; justify-content: center; font-weight: bold;}
+        .match-item.selected { background: var(--primary); color: white; }
+        .match-item.hidden { visibility: hidden; }
+        #list-view, #wrong-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; width: 100%; padding: 10px; }
+        .list-card { background:#fff; padding:10px; border-radius:8px; border:1px solid #ddd; display:flex; flex-direction:column; align-items:center; cursor:pointer; text-align:center;}
+        .list-card b { font-size: 1.4rem; }
+        .list-pinyin { color: var(--pinyin-red); font-weight: bold; font-size: 1rem; }
+        #result-screen { text-align: center; padding: 20px; display: none; }
+    </style>
+</head>
+<body>
+
+<div id="cover-page" onclick="enterApp()">
+    <div id="star-container"></div>
+    <div style="text-align:center; color:white; z-index:10;">
+        <h1 style="font-size:5vw; margin:0;">500 NEW WORDS</h1>
+        <h2 style="color:var(--gold); font-size:6vw; margin:0;">HSK 1 FULL</h2>
+        <p style="letter-spacing:2px; margin-top:20px;">CLICK TO START STUDYING</p>
+    </div>
+</div>
+
+<div id="app-container">
+    <div class="sidebar">
+        <button id="n-learn" class="active" onclick="switchMode('learn')">📖 Study</button>
+        <button id="n-write" onclick="switchMode('write')">✍️ Dictation</button>
+        <button id="n-pinyin" onclick="switchMode('pinyin')">⌨️ Pinyin</button>
+        <button id="n-list" onclick="switchMode('list')">📜 Word List</button>
+        <button id="n-match" onclick="switchMode('match')">🧩 Match</button>
+        <button id="n-wrong" onclick="switchMode('wrong')" style="color:#d32f2f;">❌ Mistake</button>
+        <div class="sidebar-watermark">© XUSFUNCHINESE</div>
+    </div>
+    <div class="content">
+        <div id="feedback-box"></div>
+        <div id="mode-learn" class="view" style="display:flex; flex-direction:column; align-items:center;">
+            <div id="s-pinyin" style="color:var(--pinyin-red); font-size:2rem; font-weight:bold;"></div>
+            <div id="s-mean" style="font-size:1.2rem; color:#444;"></div>
+            <div id="s-grids" class="grid-flex"></div>
+            <div>
+                <button class="btn" style="background:#555" onclick="prevWord()">Prev</button>
+                <button class="btn" onclick="nextWord()">Next</button>
+            </div>
+        </div>
+        <div id="mode-write" class="view" style="display:none; flex-direction:column; align-items:center;">
+            <div id="w-mean" style="font-size:1.8rem; font-weight:bold; color:var(--pinyin-red);"></div>
+            <div id="w-grids" class="grid-flex"></div>
+            <div>
+                <button id="ans-btn" class="btn" style="background:var(--gold); color:var(--primary)" onclick="handleAnswer()">Show Answer</button>
+                <button class="btn" onclick="nextWord()">Next</button>
+            </div>
+        </div>
+        <div id="mode-match" class="view" style="display:none; width:100%">
+            <div id="match-progress" style="text-align:center; font-weight:bold; color:var(--primary); margin-bottom:5px;"></div>
+            <div id="match-grid"></div>
+            <div style="text-align:center; margin-top:10px;"><button class="btn" onclick="resetMatchGame()">Reset</button></div>
+        </div>
+        <div id="mode-pinyin" class="view" style="display:none; flex-direction:column; align-items:center;">
+            <h1 id="p-char" style="font-size:5rem; margin:10px;"></h1>
+            <input type="text" id="p-input" placeholder="pinyin" autocomplete="off" style="padding:10px; font-size:1.5rem; text-align:center; width:200px; border:2px solid var(--primary); border-radius:10px;">
+            <button class="btn" style="margin-top:15px;" onclick="checkPinyin()">Check</button>
+        </div>
+        <div id="mode-list" class="view" style="display:none; width:100%"><div id="list-view"></div></div>
+        <div id="mode-wrong" class="view" style="display:none; width:100%"><div id="wrong-view"></div></div>
+        <div id="result-screen">
+            <h2 id="result-text" style="color:var(--primary)"></h2>
+            <p>Please subscribe to "Xu's Fun Chinese" on Youtube!</p>
+            <button class="btn" onclick="switchMode('learn')">Restart</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 完整 500 词库，包含拼音、含义和 Emoji
+const vocabulary = [
+    {c:"爱", p:"ài", m:"love", e:"❤️"}, {c:"爱好", p:"ài hào", m:"hobby", e:"🎨"}, {c:"八", p:"bā", m:"eight", e:"8️⃣"}, {c:"爸爸", p:"bàba", m:"dad", e:"👨"}, {c:"吧", p:"ba", m:"particle", e:"💬"},
+    {c:"白", p:"bái", m:"white", e:"⚪"}, {c:"白天", p:"bái tiān", m:"day", e:"☀️"}, {c:"百", p:"bǎi", m:"hundred", e:"💯"}, {c:"班", p:"bān", m:"class", e:"🏫"}, {c:"半", p:"bàn", m:"half", e:"🌗"},
+    {c:"半年", p:"bàn nián", m:"half a year", e:"📅"}, {c:"半天", p:"bàn tiān", m:"half day", e:"🕒"}, {c:"帮", p:"bāng", m:"help", e:"🤝"}, {c:"帮忙", p:"bāng máng", m:"help", e:"🆘"}, {c:"包", p:"bāo", m:"package", e:"📦"},
+    {c:"包子", p:"bāo zi", m:"bun", e:"🥟"}, {c:"杯", p:"bēi", m:"cup (MW)", e:"🥛"}, {c:"杯子", p:"bēi zi", m:"cup", e:"☕"}, {c:"北", p:"běi", m:"north", e:"🧭"}, {c:"北边", p:"běi biān", m:"North side", e:"⬆️"},
+    {c:"北京", p:"běi jīng", m:"Beijing", e:"⛩️"}, {c:"本", p:"běn", m:"MW for books", e:"📚"}, {c:"本子", p:"běn zi", m:"notebook", e:"📒"}, {c:"比", p:"bǐ", m:"compare", e:"⚖️"}, {c:"别", p:"bié", m:"Don't", e:"🚫"},
+    {c:"别的", p:"bié de", m:"other", e:"➕"}, {c:"别人", p:"bié rén", m:"other people", e:"👥"}, {c:"病", p:"bìng", m:"disease", e:"🤒"}, {c:"病人", p:"bìng rén", m:"patient", e:"🏥"}, {c:"不大", p:"bú dà", m:"not big", e:"🤏"},
+    {c:"不对", p:"bú duì", m:"wrong", e:"❌"}, {c:"不客气", p:"bú kè qi", m:"welcome", e:"😇"}, {c:"不用", p:"bú yòng", m:"no need", e:"✋"}, {c:"不", p:"bù", m:"no", e:"✖️"}, {c:"菜", p:"cài", m:"dish", e:"🥗"},
+    {c:"茶", p:"chá", m:"tea", e:"🍵"}, {c:"差", p:"chà", m:"bad / short of", e:"📉"}, {c:"常", p:"cháng", m:"often", e:"🔄"}, {c:"常常", p:"cháng cháng", m:"often", e:"🔁"}, {c:"唱", p:"chàng", m:"sing", e:"🎤"},
+    {c:"唱歌", p:"chàng gē", m:"sing", e:"🎶"}, {c:"车", p:"chē", m:"car", e:"🚗"}, {c:"车票", p:"chē piào", m:"ticket", e:"🎫"}, {c:"车上", p:"chē shàng", m:"in the car", e:"🚍"}, {c:"车站", p:"chē zhàn", m:"station", e:"🚉"},
+    {c:"吃", p:"chī", m:"eat", e:"🍴"}, {c:"吃饭", p:"chī fàn", m:"have meal", e:"🍚"}, {c:"出", p:"chū", m:"out", e:"🚪"}, {c:"出来", p:"chū lái", m:"come out", e:"🚶"}, {c:"出去", p:"chū qù", m:"go out", e:"🏃"},
+    {c:"穿", p:"chuān", m:"wear", e:"👕"}, {c:"床", p:"chuáng", m:"bed", e:"🛌"}, {c:"次", p:"cì", m:"times", e:"🔢"}, {c:"从", p:"cóng", m:"from", e:"➡️"}, {c:"错", p:"cuò", m:"wrong", e:"✖️"},
+    {c:"打", p:"dǎ", m:"hit / play", e:"👊"}, {c:"打车", p:"dǎ chē", m:"take taxi", e:"🚕"}, {c:"打电话", p:"dǎ diàn huà", m:"call", e:"📞"}, {c:"打开", p:"dǎ kāi", m:"open", e:"🔓"}, {c:"打球", p:"dǎ qiú", m:"play ball", e:"🏀"},
+    {c:"大", p:"dà", m:"big", e:"🐘"}, {c:"大学", p:"dà xué", m:"university", e:"🎓"}, {c:"大学生", p:"dà xué shēng", m:"uni student", e:"🧑‍🎓"}, {c:"到", p:"dào", m:"reach", e:"📍"}, {c:"得到", p:"dé dào", m:"get", e:"🏆"},
+    {c:"地", p:"de", m:"particle", e:"⚙️"}, {c:"的", p:"de", m:"possessive", e:"📎"}, {c:"等", p:"děng", m:"wait", e:"⏳"}, {c:"地", p:"dì", m:"ground", e:"🌱"}, {c:"地点", p:"dì diǎn", m:"location", e:"🗺️"},
+    {c:"地方", p:"dì fang", m:"place", e:"🏘️"}, {c:"地上", p:"dì shàng", m:"on ground", e:"🦶"}, {c:"地图", p:"dì tú", m:"map", e:"🗺️"}, {c:"弟弟", p:"dì di", m:"younger brother", e:"👦"}, {c:"第", p:"dì", m:"ordinal", e:"1️⃣"},
+    {c:"点", p:"diǎn", m:"o'clock / spot", e:"⏰"}, {c:"电", p:"diàn", m:"electricity", e:"⚡"}, {c:"电话", p:"diàn huà", m:"phone", e:"☎️"}, {c:"电脑", p:"diàn nǎo", m:"computer", e:"💻"}, {c:"电视", p:"diàn shì", m:"TV", e:"📺"},
+    {c:"电视机", p:"diàn shì jī", m:"TV set", e:"📽️"}, {c:"电影", p:"diàn yǐng", m:"movie", e:"🎬"}, {c:"电影院", p:"diàn yǐng yuàn", m:"cinema", e:"🍿"}, {c:"东", p:"dōng", m:"east", e:"🌅"}, {c:"东边", p:"dōng biān", m:"east side", e:"👉"},
+    {c:"东西", p:"dōng xi", m:"thing", e:"🛍️"}, {c:"动", p:"dòng", m:"move", e:"🏃"}, {c:"动作", p:"dòng zuò", m:"action", e:"🎬"}, {c:"都", p:"dōu", m:"all", e:"🌍"}, {c:"读", p:"dú", m:"read", e:"📖"},
+    {c:"读书", p:"dú shū", m:"reading", e:"📚"}, {c:"对", p:"duì", m:"right / correct", e:"✅"}, {c:"对不起", p:"duì bu qǐ", m:"sorry", e:"🙇"}, {c:"多", p:"duō", m:"many", e:"🔢"}, {c:"多少", p:"duō shǎo", m:"how much", e:"❓"},
+    {c:"饿", p:"è", m:"hungry", e:"🍔"}, {c:"儿子", p:"ér zi", m:"son", e:"👦"}, {c:"二", p:"èr", m:"two", e:"2️⃣"}, {c:"饭", p:"fàn", m:"meal / rice", e:"🍚"}, {c:"饭店", p:"fàn diàn", m:"restaurant", e:"🍴"},
+    {c:"房间", p:"fáng jiān", m:"room", e:"🛌"}, {c:"房子", p:"fáng zi", m:"house", e:"🏠"}, {c:"放", p:"fàng", m:"put / release", e:"📥"}, {c:"放假", p:"fàng jià", m:"holiday", e:"🏖️"}, {c:"放学", p:"fàng xué", m:"off school", e:"🎒"},
+    {c:"飞", p:"fēi", m:"fly", e:"🦅"}, {c:"飞机", p:"fēi jī", m:"airplane", e:"✈️"}, {c:"非常", p:"fēi cháng", m:"very", e:"🔥"}, {c:"分", p:"fēn", m:"minute / point", e:"🕙"}, {c:"风", p:"fēng", m:"wind", e:"🌬️"},
+    {c:"干", p:"gān", m:"dry", e:"☀️"}, {c:"干净", p:"gān jìng", m:"clean", e:"🧼"}, {c:"干", p:"gàn", m:"do", e:"🔨"}, {c:"干什么", p:"gàn shén me", m:"do what", e:"❓"}, {c:"高", p:"gāo", m:"high / tall", e:"🦒"},
+    {c:"高兴", p:"gāo xìng", m:"happy", e:"😊"}, {c:"告诉", p:"gào su", m:"tell", e:"🗣️"}, {c:"哥哥", p:"gē ge", m:"elder brother", e:"👨"}, {c:"歌", p:"gē", m:"song", e:"🎵"}, {c:"个", p:"gè", m:"MW", e:"📍"},
+    {c:"给", p:"gěi", m:"give", e:"🎁"}, {c:"跟", p:"gēn", m:"with", e:"🚶‍♂️🚶"}, {c:"工人", p:"gōng rén", m:"worker", e:"👷"}, {c:"工作", p:"gōng zuò", m:"work", e:"💼"}, {c:"关", p:"guān", m:"close", e:"🚪"},
+    {c:"关上", p:"guān shàng", m:"shut", e:"🔒"}, {c:"贵", p:"guì", m:"noble / expensive", e:"💎"}, {c:"国", p:"guó", m:"country", e:"🏳️"}, {c:"国家", p:"guó jiā", m:"country", e:"🗺️"}, {c:"国外", p:"guó wài", m:"abroad", e:"✈️"},
+    {c:"过", p:"guò", m:"pass", e:"🏁"}, {c:"还", p:"hái", m:"also", e:"➕"}, {c:"还是", p:"hái shi", m:"still / or", e:"🤔"}, {c:"还有", p:"hái yǒu", m:"besides", e:"📦"}, {c:"孩子", p:"hái zi", m:"children", e:"👶"},
+    {c:"汉语", p:"hàn yǔ", m:"Chinese", e:"🇨🇳"}, {c:"汉字", p:"hàn zì", m:"Chinese character", e:"✍️"}, {c:"好", p:"hǎo", m:"good", e:"👍"}, {c:"好吃", p:"hǎo chī", m:"yummy", e:"😋"}, {c:"好看", p:"hǎo kàn", m:"good looking", e:"🤩"},
+    {c:"好听", p:"hǎo tīng", m:"pleasant sound", e:"🎧"}, {c:"好玩儿", p:"hǎo wánr", m:"fun", e:"🎡"}, {c:"号", p:"hào", m:"date / number", e:"📅"}, {c:"喝", p:"hē", m:"drink", e:"🍹"}, {c:"和", p:"hé", m:"and", e:"🤝"},
+    {c:"很", p:"hěn", m:"very", e:"❗"}, {c:"后", p:"hòu", m:"back / after", e:"🔙"}, {c:"后边", p:"hòu biān", m:"behind", e:"👈"}, {c:"后天", p:"hòu tiān", m:"day after tomorrow", e:"📅"}, {c:"花", p:"huā", m:"flower", e:"🌸"},
+    {c:"话", p:"huà", m:"word", e:"💬"}, {c:"坏", p:"huài", m:"bad", e:"👿"}, {c:"还", p:"huán", m:"return", e:"🔄"}, {c:"回", p:"huí", m:"return", e:"↩️"}, {c:"回答", p:"huí dá", m:"answer", e:"🙋"},
+    {c:"回到", p:"huí dào", m:"back to", e:"🏡"}, {c:"回家", p:"huí jiā", m:"go home", e:"🏠"}, {c:"回来", p:"huí lái", m:"come back", e:"🚶"}, {c:"回去", p:"huí qù", m:"go back", e:"🏃"}, {c:"会", p:"huì", m:"can / meet", e:"🧠"},
+    {c:"火车", p:"huǒ chē", m:"train", e:"🚂"}, {c:"机场", p:"jī chǎng", m:"airport", e:"🛫"}, {c:"机票", p:"jī piào", m:"air ticket", e:"🎫"}, {c:"鸡蛋", p:"jī dàn", m:"egg", e:"🥚"}, {c:"几", p:"jǐ", m:"several", e:"🔢"},
+    {c:"记", p:"jì", m:"remember", e:"🧠"}, {c:"记得", p:"jì de", m:"remember", e:"💭"}, {c:"记住", p:"jì zhù", m:"keep in mind", e:"📌"}, {c:"家", p:"jiā", m:"home", e:"🏠"}, {c:"家里", p:"jiā lǐ", m:"in home", e:"🏘️"},
+    {c:"家人", p:"jiā rén", m:"family", e:"👨‍👩‍👧‍👦"}, {c:"间", p:"jiān", m:"room / between", e:"🚪"}, {c:"见", p:"jiàn", m:"see", e:"👁️"}, {c:"见面", p:"jiàn miàn", m:"meet", e:"🤝"}, {c:"教", p:"jiāo", m:"teach", e:"👨‍🏫"},
+    {c:"叫", p:"jiào", m:"call", e:"📢"}, {c:"教学楼", p:"jiào xué lóu", m:"teaching building", e:"🏢"}, {c:"姐姐", p:"jiě jie", m:"elder sister", e:"👩"}, {c:"介绍", p:"jiè shào", m:"introduce", e:"🤝"}, {c:"今年", p:"jīn nián", m:"this year", e:"📅"},
+    {c:"今天", p:"jīn tiān", m:"today", e:"☀️"}, {c:"进", p:"jìn", m:"enter", e:"🚪"}, {c:"进来", p:"jìn lái", m:"come in", e:"🚶"}, {c:"进去", p:"jìn qù", m:"go in", e:"🏃"}, {c:"九", p:"jiǔ", m:"nine", e:"9️⃣"},
+    {c:"就", p:"jiù", m:"then / right away", e:"🔜"}, {c:"觉得", p:"jué de", m:"think / feel", e:"🤔"}, {c:"开", p:"kāi", m:"open / drive", e:"🔓"}, {c:"开车", p:"kāi chē", m:"drive", e:"🚗"}, {c:"开会", p:"kāi huì", m:"meeting", e:"👥"},
+    {c:"开玩笑", p:"kāi wán xiào", m:"joke", e:"😂"}, {c:"看", p:"kàn", m:"see / watch", e:"👀"}, {c:"看病", p:"kàn bìng", m:"see doctor", e:"🏥"}, {c:"看到", p:"kàn dào", m:"see", e:"👁️"}, {c:"看见", p:"kàn jiàn", m:"seeing", e:"👀"},
+    {c:"考", p:"kǎo", m:"test", e:"📝"}, {c:"考试", p:"kǎo shì", m:"exam", e:"📑"}, {c:"渴", p:"kě", m:"thirsty", e:"🚱"}, {c:"课", p:"kè", m:"course", e:"📖"}, {c:"课本", p:"kè běn", m:"textbook", e:"📚"},
+    {c:"课文", p:"kè wén", m:"text", e:"📄"}, {c:"口", p:"kǒu", m:"mouth / MW", e:"👄"}, {c:"块", p:"kuài", m:"block / MW", e:"🧱"}, {c:"快", p:"kuài", m:"fast", e:"⚡"}, {c:"来", p:"lái", m:"come", e:"👋"},
+    {c:"来到", p:"lái dào", m:"arrive", e:"📍"}, {c:"老", p:"lǎo", m:"old", e:"👴"}, {c:"老人", p:"lǎo rén", m:"the aged", e:"👵"}, {c:"老师", p:"lǎo shī", m:"teacher", e:"👩‍🏫"}, {c:"了", p:"le", m:"particle", e:"✅"},
+    {c:"累", p:"lèi", m:"tired", e:"😫"}, {c:"冷", p:"lěng", m:"cold", e:"❄️"}, {c:"里", p:"lǐ", m:"in", e:"📥"}, {c:"里边", p:"lǐ biān", m:"inside", e:"📦"}, {c:"两", p:"liǎng", m:"two", e:"2️⃣"},
+    {c:"零", p:"líng", m:"zero", e:"0️⃣"}, {c:"六", p:"liù", m:"six", e:"6️⃣"}, {c:"楼", p:"lóu", m:"floor / building", e:"🏢"}, {c:"楼上", p:"lóu shàng", m:"upstairs", e:"⬆️"}, {c:"楼下", p:"lóu xià", m:"downstairs", e:"⬇️"},
+    {c:"路", p:"lù", m:"road", e:"🛣️"}, {c:"路口", p:"lù kǒu", m:"crossing", e:"🚦"}, {c:"路上", p:"lù shàng", m:"on the road", e:"🚘"}, {c:"妈妈", p:"mā ma", m:"mom", e:"👩"}, {c:"马路", p:"mǎ lù", m:"street", e:"🛣️"},
+    {c:"马上", p:"mǎ shàng", m:"right off", e:"⚡"}, {c:"吗", p:"ma", m:"particle", e:"❓"}, {c:"买", p:"mǎi", m:"buy", e:"🛒"}, {c:"慢", p:"màn", m:"slow", e:"🐢"}, {c:"忙", p:"máng", m:"busy", e:"💼"},
+    {c:"毛", p:"máo", m:"cent", e:"🪙"}, {c:"没", p:"méi", m:"no", e:"✖️"}, {c:"没关系", p:"méi guān xi", m:"no problem", e:"🤝"}, {c:"没什么", p:"méi shén me", m:"it's nothing", e:"🤷"}, {c:"没事儿", p:"méi shìr", m:"it's okay", e:"👌"},
+    {c:"没有", p:"méi yǒu", m:"not have", e:"📭"}, {c:"妹妹", p:"mèi mei", m:"younger sister", e:"👧"}, {c:"门", p:"mén", m:"door", e:"🚪"}, {c:"门口", p:"mén kǒu", m:"doorway", e:"🚪"}, {c:"门票", p:"mén piào", m:"ticket", e:"🎟️"},
+    {c:"们", p:"men", m:"plural", e:"👥"}, {c:"米饭", p:"mǐ fàn", m:"steamed rice", e:"🍚"}, {c:"面包", p:"miàn bāo", m:"bread", e:"🍞"}, {c:"面条儿", p:"miàn tiáor", m:"noodles", e:"🍜"}, {c:"名字", p:"míng zi", m:"name", e:"📛"},
+    {c:"明白", p:"míng bai", m:"clear / understand", e:"💡"}, {c:"明年", p:"míng nián", m:"next year", e:"📅"}, {c:"明天", p:"míng tiān", m:"tomorrow", e:"🌅"}, {c:"拿", p:"ná", m:"take", e:"🤲"}, {c:"哪", p:"nǎ", m:"which", e:"❓"},
+    {c:"哪里", p:"nǎ lǐ", m:"where", e:"📍"}, {c:"哪儿", p:"nǎ r", m:"where", e:"🗺️"}, {c:"哪些", p:"nǎ xiē", m:"which", e:"🤔"}, {c:"那", p:"nà", m:"that", e:"👉"}, {c:"那边", p:"nà biān", m:"there", e:"📍"},
+    {c:"那里", p:"nà lǐ", m:"there", e:"📍"}, {c:"那儿", p:"nà r", m:"there", e:"👉"}, {c:"那些", p:"nà xiē", m:"those", e:"👥"}, {c:"奶", p:"nǎi", m:"milk", e:"🥛"}, {c:"奶奶", p:"nǎi nai", m:"grandma", e:"👵"},
+    {c:"男", p:"nán", m:"man", e:"👨"}, {c:"男孩儿", p:"nán háir", m:"boy", e:"👦"}, {c:"男朋友", p:"nán péng yǒu", m:"boyfriend", e:"👦❤️"}, {c:"男人", p:"nán ren", m:"man", e:"🧔"}, {c:"男生", p:"nán shēng", m:"boy", e:"👱"},
+    {c:"南", p:"nán", m:"south", e:"🧭"}, {c:"南边", p:"nán biān", m:"south side", e:"⬇️"}, {c:"难", p:"nán", m:"difficult", e:"🤯"}, {c:"呢", p:"ne", m:"particle", e:"❓"}, {c:"能", p:"néng", m:"can", e:"💪"},
+    {c:"你", p:"nǐ", m:"you", e:"👋"}, {c:"你们", p:"nǐ men", m:"you (pl)", e:"👥"}, {c:"年", p:"nián", m:"year", e:"🗓️"}, {c:"您", p:"nín", m:"you (polite)", e:"🙏"}, {c:"牛奶", p:"niú nǎi", m:"milk", e:"🥛"},
+    {c:"女", p:"nǚ", m:"woman", e:"👩"}, {c:"女儿", p:"nǚ ér", m:"daughter", e:"👧"}, {c:"女孩儿", p:"nǚ háir", m:"girl", e:"👧"}, {c:"女朋友", p:"nǚ péng yǒu", m:"girlfriend", e:"👧❤️"}, {c:"女人", p:"nǚ ren", m:"woman", e:"👩"},
+    {c:"女生", p:"nǚ shēng", m:"girl", e:"👱‍♀️"}, {c:"旁边", p:"páng biān", m:"side", e:"⬅️"}, {c:"跑", p:"pǎo", m:"run", e:"🏃"}, {c:"朋友", p:"péng you", m:"friend", e:"👬"}, {c:"票", p:"piào", m:"ticket", e:"🎫"},
+    {c:"七", p:"qī", m:"seven", e:"7️⃣"}, {c:"起", p:"qǐ", m:"rise / start", e:"🆙"}, {c:"起床", p:"qǐ chuáng", m:"get up", e:"🛌🆙"}, {c:"起来", p:"qǐ lái", m:"get up", e:"🚶"}, {c:"汽车", p:"qì chē", m:"car", e:"🚗"},
+    {c:"前", p:"qián", m:"front / before", e:"⏩"}, {c:"前边", p:"qián biān", m:"in front", e:"⬆️"}, {c:"前天", p:"qián tiān", m:"day before yesterday", e:"📅"}, {c:"钱", p:"qián", m:"money", e:"💰"}, {c:"钱包", p:"qián bāo", m:"wallet", e:"👛"},
+    {c:"请", p:"qǐng", m:"please", e:"🙏"}, {c:"请假", p:"qǐng jià", m:"ask for leave", e:"🤒"}, {c:"请进", p:"qǐng jìn", m:"come in", e:"🚪"}, {c:"请问", p:"qǐng wèn", m:"excuse me", e:"❓"}, {c:"请坐", p:"qǐng zuò", m:"have seat", e:"🪑"},
+    {c:"球", p:"qiú", m:"ball", e:"⚽"}, {c:"去", p:"qù", m:"go", e:"🏃"}, {c:"去年", p:"qù nián", m:"last year", e:"📅"}, {c:"热", p:"rè", m:"heat", e:"🔥"}, {c:"人", p:"rén", m:"people", e:"👤"},
+    {c:"认识", p:"rèn shi", m:"know", e:"🤝"}, {c:"认真", p:"rèn zhēn", m:"earnest", e:"🧐"}, {c:"日", p:"rì", m:"date / sun", e:"📅"}, {c:"日期", p:"rì qī", m:"date", e:"📆"}, {c:"肉", p:"ròu", m:"meat", e:"🥩"},
+    {c:"三", p:"sān", m:"three", e:"3️⃣"}, {c:"山", p:"shān", m:"mountain", e:"⛰️"}, {c:"商场", p:"shāng chǎng", m:"mall", e:"🏬"}, {c:"商店", p:"shāng diàn", m:"shop", e:"🏪"}, {c:"上", p:"shàng", m:"upper / go up", e:"⬆️"},
+    {c:"上班", p:"shàng bān", m:"go to work", e:"🏢"}, {c:"上边", p:"shàng biān", m:"above", e:"👆"}, {c:"上车", p:"shàng chē", m:"get on", e:"🚌"}, {c:"上次", p:"shàng cì", m:"last time", e:"⏮️"}, {c:"上课", p:"shàng kè", m:"attend class", e:"🎓"},
+    {c:"上网", p:"shàng wǎng", m:"surf internet", e:"🌐"}, {c:"上午", p:"shàng wǔ", m:"morning", e:"🕙"}, {c:"上学", p:"shàng xué", m:"go to school", e:"🎒"}, {c:"少", p:"shǎo", m:"less", e:"➖"}, {c:"谁", p:"shéi", m:"who", e:"❓"},
+    {c:"身上", p:"shēn shàng", m:"on body", e:"👤"}, {c:"身体", p:"shēn tǐ", m:"body", e:"🧍"}, {c:"什么", p:"shén me", m:"what", e:"❓"}, {c:"生病", p:"shēng bìng", m:"fall ill", e:"🤒"}, {c:"生气", p:"shēng qì", m:"get angry", e:"😡"},
+    {c:"生日", p:"shēng rì", m:"birthday", e:"🎂"}, {c:"十", p:"shí", m:"ten", e:"🔟"}, {c:"时候", p:"shí hou", m:"time", e:"🕓"}, {c:"时间", p:"shí jiān", m:"time", e:"⌚"}, {c:"事", p:"shì", m:"thing", e:"📋"},
+    {c:"试", p:"shì", m:"try", e:"🔍"}, {c:"是", p:"shì", m:"yes / be", e:"✅"}, {c:"是不是", p:"shì bú shì", m:"isn't it?", e:"❓"}, {c:"手", p:"shǒu", m:"hand", e:"✋"}, {c:"手机", p:"shǒu jī", m:"phone", e:"📱"},
+    {c:"书", p:"shū", m:"book", e:"📖"}, {c:"书包", p:"shū bāo", m:"school bag", e:"🎒"}, {c:"书店", p:"shū diàn", m:"bookstore", e:"📚🏪"}, {c:"树", p:"shù", m:"tree", e:"🌳"}, {c:"水", p:"shuǐ", m:"water", e:"💧"},
+    {c:"水果", p:"shuǐ guǒ", m:"fruits", e:"🍎"}, {c:"睡", p:"shuì", m:"sleep", e:"🛌"}, {c:"睡觉", p:"shuì jiào", m:"sleep", e:"💤"}, {c:"说", p:"shuō", m:"speak", e:"🗣️"}, {c:"说话", p:"shuō huà", m:"talk", e:"💬"},
+    {c:"四", p:"sì", m:"four", e:"4️⃣"}, {c:"送", p:"sòng", m:"give", e:"🎁"}, {c:"岁", p:"suì", m:"year / age", e:"🎂"}, {c:"他", p:"tā", m:"he", e:"👨"}, {c:"他们", p:"tā men", m:"they (m)", e:"👬"},
+    {c:"她", p:"tā", m:"she", e:"👩"}, {c:"她们", p:"tā men", m:"they (f)", e:"👭"}, {c:"太", p:"tài", m:"too", e:"❗"}, {c:"天", p:"tiān", m:"day", e:"☀️"}, {c:"天气", p:"tiān qì", m:"weather", e:"☁️"},
+    {c:"听", p:"tīng", m:"hear", e:"👂"}, {c:"听到", p:"tīng dào", m:"hear", e:"👂🔊"}, {c:"听见", p:"tīng jiàn", m:"hear", e:"👂"}, {c:"听写", p:"tīng xiě", m:"dictation", e:"✍️👂"}, {c:"同学", p:"tóng xué", m:"classmate", e:"🧑‍🎓"},
+    {c:"图书馆", p:"tú shū guǎn", m:"library", e:"🏛️"}, {c:"外", p:"wài", m:"outside", e:"🚪"}, {c:"外边", p:"wài biān", m:"outside", e:"📍"}, {c:"外国", p:"wài guó", m:"foreign", e:"🏳️"}, {c:"外语", p:"wài yǔ", m:"foreign language", e:"🗣️"},
+    {c:"玩儿", p:"wán r", m:"play", e:"🎮"}, {c:"晚", p:"wǎn", m:"late", e:"🕙"}, {c:"晚饭", p:"wǎn fàn", m:"dinner", e:"🍲"}, {c:"晚上", p:"wǎn shang", m:"night", e:"🌙"}, {c:"网上", p:"wǎng shàng", m:"online", e:"🌐"},
+    {c:"网友", p:"wǎng yǒu", m:"net friend", e:"💻👬"}, {c:"忘", p:"wàng", m:"forget", e:"🤷"}, {c:"忘记", p:"wàng jì", m:"forget", e:"❌💭"}, {c:"问", p:"wèn", m:"ask", e:"❓"}, {c:"我", p:"wǒ", m:"I", e:"🙋"},
+    {c:"我们", p:"wǒ men", m:"we", e:"👫"}, {c:"五", p:"wǔ", m:"five", e:"5️⃣"}, {c:"午饭", p:"wǔ fàn", m:"lunch", e:"🍱"}, {c:"西", p:"xī", m:"west", e:"🧭"}, {c:"西边", p:"xī biān", m:"west side", e:"👈"},
+    {c:"洗", p:"xǐ", m:"wash", e:"🧼"}, {c:"洗手间", p:"xǐ shǒu jiān", m:"restroom", e:"🚻"}, {c:"喜欢", p:"xǐ huan", m:"like", e:"❤️"}, {c:"下", p:"xià", m:"below / go down", e:"⬇️"}, {c:"下班", p:"xià bān", m:"get off work", e:"🏢🏃"},
+    {c:"下边", p:"xià biān", m:"under", e:"👇"}, {c:"下车", p:"xià chē", m:"get off", e:"🚍⬇️"}, {c:"下次", p:"xià cì", m:"next time", e:"⏭️"}, {c:"下课", p:"xià kè", m:"finish class", e:"🎓🔔"}, {c:"下午", p:"xià wǔ", m:"afternoon", e:"🕒"},
+    {c:"下雨", p:"xià yǔ", m:"rain", e:"🌧️"}, {c:"先", p:"xiān", m:"before / first", e:"1️⃣"}, {c:"先生", p:"xiān sheng", m:"sir", e:"🧔"}, {c:"现在", p:"xiàn zài", m:"now", e:"🕒"}, {c:"想", p:"xiǎng", m:"think", e:"🤔"},
+    {c:"小", p:"xiǎo", m:"small", e:"🐭"}, {c:"小孩儿", p:"xiǎo háir", m:"kid", e:"👶"}, {c:"小姐", p:"xiǎo jiě", m:"miss", e:"👩"}, {c:"小朋友", p:"xiǎo péng yǒu", m:"child", e:"🧒"}, {c:"小时", p:"xiǎo shí", m:"hour", e:"⌛"},
+    {c:"小学", p:"xiǎo xué", m:"primary school", e:"🏫"}, {c:"小学生", p:"xiǎo xué shēng", m:"elementary student", e:"🧑‍🎓"}, {c:"笑", p:"xiào", m:"laugh", e:"😄"}, {c:"写", p:"xiě", m:"write", e:"✍️"}, {c:"谢谢", p:"xiè xie", m:"thank you", e:"🙏"},
+    {c:"新", p:"xīn", m:"new", e:"✨"}, {c:"新年", p:"xīn nián", m:"new year", e:"🎆"}, {c:"星期", p:"xīng qī", m:"week", e:"📅"}, {c:"星期日", p:"xīng qī rì", m:"Sunday", e:"☀️"}, {c:"星期天", p:"xīng qī tiān", m:"Sunday", e:"📅"},
+    {c:"行", p:"xíng", m:"ok", e:"👌"}, {c:"休息", p:"xiū xi", m:"rest", e:"😴"}, {c:"学", p:"xué", m:"learn", e:"📖"}, {c:"学生", p:"xué sheng", m:"student", e:"🧑‍🎓"}, {c:"学习", p:"xué xí", m:"study", e:"📚"},
+    {c:"学校", p:"xué xiào", m:"school", e:"🏫"}, {c:"学院", p:"xué yuàn", m:"college", e:"🏛️"}, {c:"要", p:"yào", m:"want", e:"🖐️"}, {c:"爷爷", p:"yé ye", m:"grandpa", e:"👴"}, {c:"也", p:"yě", m:"also", e:"➕"},
+    {c:"页", p:"yè", m:"page", e:"📄"}, {c:"一", p:"yī", m:"one", e:"1️⃣"}, {c:"衣服", p:"yī fu", m:"clothes", e:"👕"}, {c:"医生", p:"yī shēng", m:"doctor", e:"👨‍⚕️"}, {c:"医院", p:"yī yuàn", m:"hospital", e:"🏥"},
+    {c:"一半", p:"yí bàn", m:"half", e:"🌗"}, {c:"一会儿", p:"yí huì r", m:"little while", e:"⏳"}, {c:"一块儿", p:"yí kuàir", m:"together", e:"👫"}, {c:"一下儿", p:"yí xià r", m:"little bit", e:"🤏"}, {c:"一样", p:"yí yàng", m:"equally", e:"⚖️"},
+    {c:"一边", p:"yì biān", m:"one side", e:"⬅️"}, {c:"一点儿", p:"yī diǎn r", m:"little bit", e:"🤏"}, {c:"一起", p:"yì qǐ", m:"together", e:"🤝"}, {c:"一些", p:"yì xiē", m:"some", e:"📦"}, {c:"用", p:"yòng", m:"use", e:"🛠️"},
+    {c:"有", p:"yǒu", m:"have", e:"🤲"}, {c:"有的", p:"yǒu de", m:"some", e:"🍱"}, {c:"有名", p:"yǒu míng", m:"famous", e:"🌟"}, {c:"有时候", p:"yǒu shí hou", m:"sometimes", e:"🕒"}, {c:"有些", p:"yǒu xiē", m:"some", e:"📦"},
+    {c:"有用", p:"yǒu yòng", m:"useful", e:"✅"}, {c:"右", p:"yòu", m:"right", e:"👉"}, {c:"右边", p:"yòu bian", m:"right side", e:"➡️"}, {c:"雨", p:"yǔ", m:"rain", e:"🌧️"}, {c:"元", p:"yuán", m:"Yuan", e:"💴"},
+    {c:"远", p:"yuǎn", m:"far", e:"🔭"}, {c:"月", p:"yuè", m:"month", e:"🌙"}, {c:"再", p:"zài", m:"again", e:"🔄"}, {c:"再见", p:"zàijiàn", m:"bye", e:"👋"}, {c:"在", p:"zài", m:"stay / in", e:"📍"},
+    {c:"在家", p:"zài jiā", m:"at home", e:"🏠"}, {c:"早", p:"zǎo", m:"early", e:"🌅"}, {c:"早饭", p:"zǎo fàn", m:"breakfast", e:"🥣"}, {c:"早上", p:"zǎo shang", m:"morning", e:"☀️"}, {c:"怎么", p:"zěn me", m:"how", e:"❓"},
+    {c:"站", p:"zhàn", m:"station", e:"🚉"}, {c:"找", p:"zhǎo", m:"look for", e:"🔍"}, {c:"找到", p:"zhǎo dào", m:"find", e:"🔎"}, {c:"这", p:"zhè", m:"here / this", e:"📍"}, {c:"这边", p:"zhè biān", m:"here", e:"👈"},
+    {c:"这里", p:"zhè lǐ", m:"here", e:"📍"}, {c:"这儿", p:"zhè r", m:"here", e:"👉"}, {c:"这些", p:"zhè xiē", m:"these", e:"👥"}, {c:"着", p:"zhe", m:"in process", e:"🔄"}, {c:"真", p:"zhēn", m:"really", e:"💯"},
+    {c:"真的", p:"zhēn de", m:"really", e:"✅"}, {c:"正", p:"zhèng", m:"just", e:"📍"}, {c:"正在", p:"zhèng zài", m:"in process", e:"⏳"}, {c:"知道", p:"zhī dào", m:"know", e:"🧠"}, {c:"知识", p:"zhī shi", m:"knowledge", e:"🎓"},
+    {c:"中", p:"zhōng", m:"middle", e:"🏢"}, {c:"中国", p:"zhōng guó", m:"China", e:"🇨🇳"}, {c:"中间", p:"zhōng jiān", m:"middle", e:"↔️"}, {c:"中文", p:"zhōng wén", m:"Chinese", e:"✍️"}, {c:"中午", p:"zhōng wǔ", m:"noon", e:"🕛"},
+    {c:"中学", p:"zhōng xué", m:"middle school", e:"🏫"}, {c:"中学生", p:"zhōng xué shēng", m:"middle student", e:"🧑‍🎓"}, {c:"重", p:"zhòng", m:"heavy", e:"🏋️"}, {c:"重要", p:"zhòng yào", m:"important", e:"💎"}, {c:"住", p:"zhù", m:"live", e:"🏠"},
+    {c:"准备", p:"zhǔn bèi", m:"get ready", e:"🏃"}, {c:"桌子", p:"zhuō zi", m:"table", e:"🪵"}, {c:"字", p:"zì", m:"word / character", e:"🔤"}, {c:"子", p:"zi", m:"suffix", e:"📎"}, {c:"走", p:"zǒu", m:"go / walk", e:"🚶"},
+    {c:"走路", p:"zǒu lù", m:"walk", e:"👣"}, {c:"最", p:"zuì", m:"most", e:"🏆"}, {c:"最好", p:"zuì hǎo", m:"best", e:"🌟"}, {c:"最后", p:"zuì hòu", m:"last", e:"🏁"}, {c:"昨天", p:"zuó tiān", m:"yesterday", e:"🌇"},
+    {c:"左", p:"zuǒ", m:"left", e:"👈"}, {c:"左边", p:"zuǒ bian", m:"left side", e:"⬅️"}, {c:"坐", p:"zuò", m:"sit", e:"🪑"}, {c:"坐下", p:"zuò xià", m:"sit down", e:"🧎"}, {c:"做", p:"zuò", m:"do", e:"🔨"}
+];
+
+let curIdx = 0, writers = [], ansShow = false, wrongAnswers = [];
+let matchPool = [], matchedCount = 0, selectedMatch = [];
+
+function cleanup() {
+    writers.forEach(w => { if(w && w.destroy) w.destroy(); });
+    writers = [];
+    document.getElementById('s-grids').innerHTML = '';
+    document.getElementById('w-grids').innerHTML = '';
+}
+
+function switchMode(m, idx = 0) {
+    cleanup();
+    document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
+    if(document.getElementById('n-'+m)) document.getElementById('n-'+m).classList.add('active');
+    document.querySelectorAll('.view, #result-screen').forEach(v => v.style.display = 'none');
+    
+    const target = document.getElementById('mode-'+m);
+    if(target) target.style.display = (['list', 'match', 'wrong'].includes(m)) ? 'block' : 'flex';
+    
+    curIdx = idx;
+    requestAnimationFrame(() => {
+        if(m==='list') renderList();
+        else if(m==='match') resetMatchGame();
+        else if(m==='wrong') renderWrong();
+        else updateUI();
+    });
+}
+
+function updateUI() {
+    const item = vocabulary[curIdx];
+    document.getElementById('feedback-box').innerText = '';
+    const isLearn = document.getElementById('mode-learn').style.display !== 'none';
+    const isWrite = document.getElementById('mode-write').style.display !== 'none';
+
+    if(isLearn) {
+        document.getElementById('s-pinyin').innerText = item.p;
+        document.getElementById('s-mean').innerText = item.e + " " + item.m;
+        [...item.c].forEach((char, i) => {
+            const wrap = createGrid(char, 'study', i);
+            document.getElementById('s-grids').appendChild(wrap);
+            const w = HanziWriter.create(wrap.querySelector('.writer-div'), char, { width:150, height:150, padding:5, strokeColor:'#2f3542' });
+            writers.push(w);
+            wrap.onclick = () => { speak(char); w.animateCharacter(); };
+        });
+    }
+
+    if(isWrite) {
+        document.getElementById('w-mean').innerText = item.e + " " + item.m;
+        ansShow = false; document.getElementById('ans-btn').innerText = "Show Answer";
+        [...item.c].forEach((char, i) => {
+            const wrap = createGrid(char, 'write', i);
+            document.getElementById('w-grids').appendChild(wrap);
+            initCanvas(wrap.querySelector('canvas'));
+        });
+    }
+    document.getElementById('p-char').innerText = item.c;
+    document.getElementById('p-input').value = '';
+    document.getElementById('p-input').focus();
+}
+
+function createGrid(char, mode, idx) {
+    const w = document.createElement('div'); w.className = 'tian-wrapper';
+    w.innerHTML = `<div class="tianzige"></div><div class="writer-div"></div>`;
+    if(mode === 'write') w.innerHTML += `<canvas width="150" height="150"></canvas>`;
+    return w;
+}
+
+function initCanvas(can) {
+    const ctx = can.getContext('2d');
+    let drawing = false; ctx.strokeStyle = "red"; ctx.lineWidth = 8; ctx.lineCap = "round";
+    const getP = (e) => { 
+        const r = can.getBoundingClientRect(); 
+        const t = e.touches ? e.touches[0] : e;
+        return { x: t.clientX - r.left, y: t.clientY - r.top };
+    };
+    const start = (e) => { e.preventDefault(); drawing = true; const p = getP(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+    const move = (e) => { if(!drawing) return; const p = getP(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+    can.ontouchstart = start; can.ontouchmove = move; can.ontouchend = () => drawing = false;
+    can.onmousedown = start; can.onmousemove = move; can.onmouseup = () => drawing = false;
+}
+
+function handleAnswer() {
+    ansShow = !ansShow;
+    const item = vocabulary[curIdx];
+    document.getElementById('ans-btn').innerText = ansShow ? "Hide Answer" : "Show Answer";
+    const grids = document.querySelectorAll('#w-grids .writer-div');
+    grids.forEach((g, i) => {
+        g.innerHTML = '';
+        if(ansShow) HanziWriter.create(g, item.c[i], { width: 150, height: 150, padding: 5, strokeColor: '#ccc' });
+    });
+}
+
+function resetMatchGame() {
+    matchPool = [...vocabulary].sort(() => 0.5 - Math.random());
+    matchedCount = 0;
+    initMatchRound();
+}
+
+function initMatchRound() {
+    const g = document.getElementById('match-grid'); g.innerHTML = ''; selectedMatch = [];
+    document.getElementById('match-progress').innerText = `Progress: ${matchedCount}/500`;
+    const roundItems = matchPool.slice(0, 4);
+    if(!roundItems.length) { showFinal(); return; }
+    let items = [];
+    roundItems.forEach(v => {
+        items.push({t: v.c, id: v.c}, {t: v.p, id: v.c}, {t: v.m, id: v.c});
+    });
+    items.sort(() => 0.5 - Math.random()).forEach(it => {
+        const d = document.createElement('div'); d.className = 'match-item'; d.innerText = it.t;
+        d.onclick = () => {
+            if(d.classList.contains('selected') || d.classList.contains('hidden')) return;
+            d.classList.add('selected'); selectedMatch.push({el: d, id: it.id});
+            if(selectedMatch.length === 3) {
+                if(selectedMatch[0].id === selectedMatch[1].id && selectedMatch[1].id === selectedMatch[2].id) {
+                    speak(selectedMatch[0].id);
+                    selectedMatch.forEach(s => s.el.classList.add('hidden'));
+                    if(!document.querySelector('.match-item:not(.hidden)')) {
+                        matchedCount += roundItems.length;
+                        matchPool.splice(0, 4);
+                        setTimeout(initMatchRound, 500);
+                    }
+                } else { setTimeout(() => { selectedMatch.forEach(s => s.el.classList.remove('selected')); selectedMatch = []; }, 300); return; }
+                selectedMatch = [];
+            }
+        };
+        g.appendChild(d);
+    });
+}
+
+function checkPinyin() {
+    const input = document.getElementById('p-input').value.toLowerCase().trim();
+    const correct = vocabulary[curIdx].p.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if(input === correct) {
+        document.getElementById('feedback-box').innerText='👍 Good!';
+        setTimeout(() => { if(curIdx >= 499) showFinal(); else nextWord(); }, 800);
+    } else {
+        document.getElementById('feedback-box').innerText='❌ Wrong';
+        if(!wrongAnswers.includes(vocabulary[curIdx])) wrongAnswers.push(vocabulary[curIdx]);
+    }
+}
+
+function nextWord() { curIdx = (curIdx + 1) % 500; cleanup(); updateUI(); }
+function prevWord() { curIdx = (curIdx - 1 + 500) % 500; cleanup(); updateUI(); }
+
+function showFinal() {
+    document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+    document.getElementById('result-screen').style.display = 'block';
+    const praises = ["太棒了！", "你真厉害！", "非常出色！", "好极了！"];
+    const text = praises[Math.floor(Math.random()*praises.length)];
+    document.getElementById('result-text').innerText = text;
+    speak(text);
+}
+
+function renderList() {
+    document.getElementById('list-view').innerHTML = vocabulary.map((v, i) => `
+        <div class="list-card" onclick="switchMode('learn', ${i})">
+            <b>${v.c}</b>
+            <span class="list-pinyin">${v.p}</span>
+            <small>${v.e} ${v.m}</small>
+        </div>`).join('');
+}
+
+function renderWrong() {
+    const container = document.getElementById('wrong-view');
+    if(!wrongAnswers.length) { container.innerHTML = "<p style='text-align:center;'>No mistakes yet!</p>"; return; }
+    container.innerHTML = wrongAnswers.map(v => {
+        const idx = vocabulary.findIndex(it => it.c === v.c);
+        return `<div class="list-card" onclick="switchMode('learn', ${idx})"><b>${v.c}</b><span class="list-pinyin">${v.p}</span><small>${v.e} ${v.m}</small></div>`;
+    }).join('');
+}
+
+function speak(t) { 
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const m = new SpeechSynthesisUtterance(t); m.lang = 'zh-CN'; m.rate = 0.8; window.speechSynthesis.speak(m); 
+    }
+}
+
+function enterApp() { 
+    document.getElementById('cover-page').style.opacity = '0'; 
+    setTimeout(() => { document.getElementById('cover-page').style.display = 'none'; switchMode('learn'); }, 500); 
+}
+
+window.onload = () => {
+    const container = document.getElementById('star-container');
+    for(let i=0; i<50; i++) {
+        let s = document.createElement('div'); s.className = 'star';
+        s.style.setProperty('--angle', Math.random() * 360 + 'deg');
+        s.style.animationDuration = Math.random() * 1 + 1 + 's';
+        container.appendChild(s);
+    }
+};
+
+// 监听拼音输入的回车键
+document.getElementById('p-input').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') checkPinyin();
+});
+</script>
+</body>
+</html>
