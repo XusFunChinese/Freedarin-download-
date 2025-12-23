@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HSK1 Hanzi 2 - XUSFUNCHINESE</title>
+    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+    <style>
+        :root { 
+            --pinyin-red: #ff0000; 
+            --paper: #ffffff; 
+            --gold: #ffd700; 
+            --primary: #01579b;
+            --night-sky: radial-gradient(circle at center, #001f3f 0%, #000510 100%);
+            --grid-size: 220px;
+        }
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; font-family: "Arial", sans-serif; 
+            background: #000; height: 100vh; overflow: hidden; 
+            display: flex; justify-content: center; align-items: center;
+            position: relative;
+        }
+
+        /* 水印层级 Z-index: 5 */
+        .watermark-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 5; 
+            display: flex; flex-wrap: wrap; justify-content: flex-start;
+            align-content: flex-start; padding: 20px; gap: 40px;
+            opacity: 0.12; 
+        }
+        .watermark-layer span {
+            font-size: 1.5rem; color: #ffffff; font-weight: bold;
+            white-space: nowrap;
+        }
+
+        /* 封面样式 */
+        #cover-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--night-sky); z-index: 5000; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; color: white; transition: 0.5s;
+        }
+        .cover-title { font-size: 4.5rem; margin: 0; font-weight: 900; letter-spacing: 2px; }
+        .mode-selection { margin-top: 50px; display: flex; flex-direction: column; gap: 20px; align-items: center; }
+        .mode-btn { 
+            padding: 18px 45px; font-size: 1.4rem; border: 3px solid var(--gold); 
+            background: transparent; color: white; border-radius: 60px; cursor: pointer;
+            transition: 0.3s; font-weight: bold; width: 340px;
+        }
+        .mode-btn:hover { background: var(--gold); color: #000; }
+
+        /* 主容器 Z-index: 10 */
+        #app-container { 
+            width: 100%; max-width: 500px; height: 100%; 
+            background: var(--paper); display: flex; flex-direction: column; 
+            position: relative; box-shadow: 0 0 40px rgba(0,0,0,0.9); 
+            z-index: 10;
+        }
+
+        .sidebar { 
+            width: 100%; background: #f0f0f0; display: flex; flex-wrap: wrap;
+            border-bottom: 2px solid var(--primary); z-index: 100;
+        }
+        .sidebar button { 
+            flex: 1 1 33.33%; padding: 12px 5px; border: 0.5px solid #ddd;
+            background: none; font-size: 0.8rem; font-weight: bold; 
+            color: var(--primary); cursor: pointer;
+        }
+        .sidebar button.active { background: var(--primary); color: white; }
+
+        .instruction { font-size: 0.8rem; color: #7f8c8d; font-style: italic; margin-bottom: 8px; text-align: center; }
+
+        .content { 
+            flex: 1; padding: 15px; display: flex; flex-direction: column; 
+            align-items: center; overflow-y: auto; width: 100%; background: #fff;
+        }
+        #feedback-box { font-size: 1.4rem; height: 1.5em; color: #2ecc71; font-weight: bold; margin-bottom: 5px; }
+        
+        .grid-flex { display: flex; gap: 15px; margin: 10px 0; flex-wrap: wrap; justify-content: center; width: 100%; }
+        .tian-wrapper { position: relative; width: var(--grid-size); height: var(--grid-size); border: 2px solid #8b4513; background: #fff; }
+        .tianzige { position: absolute; width: 100%; height: 100%; pointer-events: none; opacity: 0.15; background: 
+            linear-gradient(45deg, transparent 49%, red 50%, transparent 51%), 
+            linear-gradient(-45deg, transparent 49%, red 50%, transparent 51%), 
+            linear-gradient(to right, transparent 49%, red 50%, transparent 51%), 
+            linear-gradient(to bottom, transparent 49%, red 50% ,transparent 51%); }
+        .writer-div { position: absolute; top:0; left:0; width:100%; height:100%; }
+        canvas { position: absolute; top:0; left:0; z-index: 5; touch-action: none; }
+
+        .btn { padding: 12px 30px; border-radius: 25px; border: none; cursor: pointer; background: var(--primary); color: #fff; font-weight: bold; margin: 10px; font-size: 1rem; }
+
+        .list-card { background:#fff; padding:15px; border-radius:12px; border:1px solid #ddd; display:flex; align-items:center; gap:15px; width: 100%; margin-bottom:10px; cursor: pointer;}
+        .list-pinyin { color: var(--pinyin-red); font-weight: bold; font-size: 1.2rem; }
+
+        .star { position: absolute; top: 50%; left: 50%; width: 2px; height: 2px; background: white; border-radius: 50%; animation: shoot linear infinite; z-index: 1; }
+        @keyframes shoot { 0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0); opacity: 1; } 100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(1000px); opacity: 0; width: 100px; } }
+    </style>
+</head>
+<body>
+
+<div class="watermark-layer" id="wm-container"></div>
+
+<div id="cover-page">
+    <div id="star-container"></div>
+    <div style="z-index:10;">
+        <h1 class="cover-title">HSK1 Hanzi 2</h1>
+        <div class="mode-selection">
+            <button class="mode-btn" onclick="enterApp('portrait')">📱 PORTRAIT MODE</button>
+            <button class="mode-btn" onclick="enterApp('landscape')">🖼️ LANDSCAPE MODE</button>
+        </div>
+    </div>
+</div>
+
+<div id="app-container" style="display:none;">
+    <div class="sidebar">
+        <button id="n-learn" class="active" onclick="switchMode('learn')">📖 LEARN</button>
+        <button id="n-write" onclick="switchMode('write')">✍️ DICTATION</button>
+        <button id="n-match" onclick="switchMode('match')">🧩 MATCHING</button>
+        <button id="n-pinyin" onclick="switchMode('pinyin')">⌨️ PINYIN</button>
+        <button id="n-list" onclick="switchMode('list')">📜 LIST</button>
+        <button id="n-wrong" onclick="switchMode('wrong')">❌ MISTAKES</button>
+    </div>
+    
+    <div class="content">
+        <div id="feedback-box"></div>
+        
+        <div id="mode-learn" class="view" style="display:flex; flex-direction:column; align-items:center; width:100%;">
+            <p class="instruction">Tap the character to see stroke order and hear pronunciation.</p>
+            <div id="s-pinyin" style="color:var(--pinyin-red); font-size:2.8rem; font-weight:bold;"></div>
+            <div id="s-mean" style="font-size:1.4rem; color:#666; margin-bottom:15px;"></div>
+            <div id="s-grids" class="grid-flex"></div>
+            <button class="btn" onclick="nextWord()">Next Word</button>
+        </div>
+
+        <div id="mode-write" class="view" style="display:none; flex-direction:column; align-items:center; width:100%;">
+            <p class="instruction">Listen to the meaning and write the characters in the grids.</p>
+            <div id="w-mean" style="font-size:2.5rem; font-weight:bold; color:var(--pinyin-red);"></div>
+            <div id="w-grids" class="grid-flex"></div>
+            <div style="display:flex; gap:10px;">
+                <button id="ans-btn" class="btn" style="background:#f39c12;" onclick="handleAnswer()">Check Answer</button>
+                <button class="btn" onclick="nextWord()">Next Word</button>
+            </div>
+        </div>
+
+        <div id="mode-match" class="view" style="display:none; width:100%">
+            <p class="instruction">Match the Hanzi, Pinyin, and Meaning of the same word.</p>
+            <div id="match-grid" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;"></div>
+            <div style="text-align:center; margin-top:20px;">
+                <p id="match-progress" style="font-weight:bold; color:var(--primary);"></p>
+                <button class="btn" onclick="resetMatchGame()">Reset Game</button>
+            </div>
+        </div>
+
+        <div id="mode-pinyin" class="view" style="display:none; flex-direction:column; align-items:center; width:100%;">
+            <p class="instruction">Type the Pinyin for the character below (without tones).</p>
+            <h1 id="p-char" style="font-size:6rem; margin:20px 0;"></h1>
+            <input type="text" id="p-input" placeholder="Enter pinyin..." style="padding:15px; font-size:1.5rem; text-align:center; width:80%; border:3px solid var(--primary); border-radius:10px;">
+            <button class="btn" onclick="checkPinyin()" style="width:80%;">Submit</button>
+        </div>
+
+        <div id="mode-list" class="view" style="display:none; width:100%"><div id="list-view"></div></div>
+        <div id="mode-wrong" class="view" style="display:none; width:100%"><div id="wrong-view"></div></div>
+
+        <div id="result-screen" style="display:none; text-align:center;">
+            <h2 style="color:var(--primary); font-size:2.5rem;">Well Done! 🎉</h2>
+            <p>You have finished all 100 new words.</p>
+            <button class="btn" onclick="location.reload()">Restart</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// HSK1 剩余 100 词 (Part 2)
+const vocabulary = [
+    {c:"一", p:"yī", m:"one", e:"1️⃣"}, {c:"二", p:"èr", m:"two", e:"2️⃣"}, {c:"三", p:"sān", m:"three", e:"3️⃣"}, {c:"四", p:"sì", m:"four", e:"4️⃣"}, {c:"五", p:"wǔ", m:"five", e:"5️⃣"},
+    {c:"六", p:"liù", m:"six", e:"6️⃣"}, {c:"七", p:"qī", m:"seven", e:"7️⃣"}, {c:"八", p:"bā", m:"eight", e:"8️⃣"}, {c:"九", p:"jiǔ", m:"nine", e:"9️⃣"}, {c:"十", p:"shí", m:"ten", e:"🔟"},
+    {c:"零", p:"líng", m:"zero", e:"0️⃣"}, {c:"个", p:"gè", m:"measure word", e:"📦"}, {c:"岁", p:"suì", m:"years old", e:"🎂"}, {c:"本", p:"běn", m:"m.w. books", e:"📗"}, {c:"些", p:"xiē", m:"some", e:"🍱"},
+    {c:"块", p:"kuài", m:"m.w. money", e:"💰"}, {c:"大", p:"dà", m:"big", e:"🐘"}, {c:"小", p:"xiǎo", m:"small", e:"🐭"}, {c:"多", p:"duō", m:"many", e:"📈"}, {c:"少", p:"shǎo", m:"few", e:"📉"},
+    {c:"冷", p:"lěng", m:"cold", e:"❄️"}, {c:"热", p:"rè", m:"hot", e:"🔥"}, {c:"高兴", p:"gāoxìng", m:"happy", e:"😄"}, {c:"漂亮", p:"piàoliang", m:"pretty", e:"🌸"}, {c:"看", p:"kàn", m:"look", e:"👁️"},
+    {c:"听", p:"tīng", m:"listen", e:"👂"}, {c:"说话", p:"shuōhuà", m:"speak", e:"🗣️"}, {c:"读", p:"dú", m:"read", e:"📖"}, {c:"写", p:"xiě", m:"write", e:"✍️"}, {c:"看见", p:"kànjiàn", m:"see", e:"👀"},
+    {c:"叫", p:"jiào", m:"called", e:"📢"}, {c:"来", p:"lái", m:"come", e:"🏃"}, {c:"回", p:"huí", m:"return", e:"🔙"}, {c:"去", p:"qù", m:"go", e:"🚶"}, {c:"吃", p:"chī", m:"eat", e:"🍕"},
+    {c:"喝", p:"hē", m:"drink", e:"☕"}, {c:"睡觉", p:"shuìjiào", m:"sleep", e:"😴"}, {c:"做", p:"zuò", m:"do/make", e:"🛠️"}, {c:"买", p:"mǎi", m:"buy", e:"🛒"}, {c:"开", p:"kāi", m:"open/drive", e:"🚗"},
+    {c:"坐", p:"zuò", m:"sit", e:"🪑"}, {c:"住", p:"zhù", m:"live/stay", e:"🏨"}, {c:"学习", p:"xuéxí", m:"study", e:"📚"}, {c:"工作", p:"gōngzuò", m:"work", e:"💼"}, {c:"下雨", p:"xiàyǔ", m:"rain", e:"🌧️"},
+    {c:"爱", p:"ài", m:"love", e:"❤️"}, {c:"喜欢", p:"xǐhuan", m:"like", e:"😊"}, {c:"想", p:"xiǎng", m:"want/think", e:"🤔"}, {c:"认识", p:"rènshi", m:"know", e:"🤝"}, {c:"会", p:"huì", m:"can/will", e:"🧠"},
+    {c:"能", p:"néng", m:"can/able", e:"💪"}, {c:"怎么", p:"zěnme", m:"how", e:"❓"}, {c:"怎么样", p:"zěnmeyàng", m:"how about", e:"🤷"}, {c:"多少", p:"duōshǎo", m:"how many", e:"🔢"}, {c:"几", p:"jǐ", m:"how many", e:"🖐️"},
+    {c:"哪儿", p:"nǎr", m:"where", e:"📍"}, {c:"什么", p:"shénme", m:"what", e:"🤔"}, {c:"谁", p:"shéi", m:"who", e:"👤"}, {c:"太", p:"tài", m:"too/very", e:"🤩"}, {c:"都", p:"dōu", m:"both/all", e:"👬"},
+    {c:"别", p:"bié", m:"don't", e:"🚫"}, {c:"非常", p:"fēicháng", m:"very", e:"✨"}, {c:"这里", p:"zhèlǐ", m:"here", e:"👇"}, {c:"名字", p:"míngzi", m:"name", e:"🆔"}, {c:"天气", p:"tiānqì", m:"weather", e:"☁️"},
+    {c:"身体", p:"shēntǐ", m:"body", e:"💪"}, {c:"电影", p:"diànyǐng", m:"movie", e:"🎬"}, {c:"电视", p:"diànshì", m:"TV", e:"📺"}, {c:"电脑", p:"diànnǎo", m:"PC", e:"💻"}, {c:"那", p:"nà", m:"that", e:"👈"},
+    {c:"这", p:"zhè", m:"this", e:"👉"}, {c:"后面", p:"hòumiàn", m:"back", e:"⬇️"}, {c:"前面", p:"qiánmiàn", m:"front", e:"⬆️"}, {c:"上面", p:"shàngmiàn", m:"up", e:"🔝"}, {c:"下面", p:"xiàmiàn", m:"down", e:"👇"},
+    {c:"东西", p:"dōngxi", m:"thing", e:"📦"}, {c:"衣服", p:"yīfu", m:"clothes", e:"👕"}, {c:"水果", p:"shuǐguǒ", m:"fruit", e:"🍎"}, {c:"菜", p:"cài", m:"dish/veg", e:"🥗"}, {c:"飞机", p:"fēijī", m:"plane", e:"✈️"},
+    {c:"出租车", p:"chūzūchē", m:"taxi", e:"🚕"}, {c:"分钟", p:"fēnzhōng", m:"minute", e:"⏲️"}, {c:"年", p:"nián", m:"year", e:"🗓️"}, {c:"号", p:"hào", m:"date", e:"📆"}, {c:"星期", p:"xīngqī", m:"week", e:"📅"},
+    {c:"上午", p:"shàngwǔ", m:"morning", e:"☀️"}, {c:"中午", p:"zhōngwǔ", m:"noon", e:"🕛"}, {c:"下午", p:"xiàwǔ", m:"afternoon", e:"🌤️"}, {c:"点", p:"diǎn", m:"o'clock", e:"⏰"}, {c:"分钟", p:"fēnzhōng", m:"minute", e:"⌚"},
+    {c:"钱", p:"qián", m:"money", e:"💰"}, {c:"面条", p:"miàntiáo", m:"noodles", e:"🍜"}, {c:"火车站", p:"huǒchēzhàn", m:"station", e:"🚉"}, {c:"小姐", p:"xiǎojiě", m:"Miss", e:"👩"}, {c:"先生", p:"xiānsheng", m:"Mr", e:"👨"},
+    {c:"北京", p:"běijīng", m:"Beijing", e:"⛩️"}, {c:"医生", p:"yīshēng", m:"doctor", e:"👨‍⚕️"}, {c:"商店", p:"shāngdiàn", m:"shop", e:"🏪"}, {c:"医院", p:"yīyuàn", m:"hospital", e:"🏥"}, {c:"儿子", p:"érzi", m:"son", e:"👦"}
+];
+
+let curIdx = 0, writers = [], ansShow = false, wrongAnswers = [];
+let matchPool = [], matchedCount = 0, selectedMatch = [];
+let isLandscape = false;
+
+function enterApp(mode) { 
+    if(mode === 'landscape') { document.getElementById('app-container').style.maxWidth = '900px'; isLandscape = true; }
+    document.getElementById('cover-page').style.opacity = '0'; 
+    setTimeout(() => { 
+        document.getElementById('cover-page').style.display = 'none'; 
+        document.getElementById('app-container').style.display = 'flex';
+        switchMode('learn'); 
+    }, 500); 
+}
+
+function switchMode(m, idx = 0) {
+    cleanup();
+    document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
+    if(document.getElementById('n-'+m)) document.getElementById('n-'+m).classList.add('active');
+    document.querySelectorAll('.view, #result-screen').forEach(v => v.style.display = 'none');
+    const target = document.getElementById('mode-'+m);
+    if(target) target.style.display = (['list', 'match', 'wrong'].includes(m)) ? 'block' : 'flex';
+    curIdx = idx; updateUI();
+    if(m==='list') renderList();
+    if(m==='match') resetMatchGame();
+    if(m==='wrong') renderWrong();
+}
+
+function updateUI() {
+    const item = vocabulary[curIdx];
+    const isLearn = document.getElementById('mode-learn').style.display !== 'none';
+    const isWrite = document.getElementById('mode-write').style.display !== 'none';
+    const size = isLandscape ? 220 : 140;
+
+    if(isLearn) {
+        document.getElementById('s-pinyin').innerText = item.p;
+        document.getElementById('s-mean').innerText = item.m;
+        [...item.c].forEach((char) => {
+            const wrap = createGrid(char, 'study', size);
+            document.getElementById('s-grids').appendChild(wrap);
+            const w = HanziWriter.create(wrap.querySelector('.writer-div'), char, { width: size, height: size, padding: 5, strokeColor: '#2f3542' });
+            writers.push(w);
+            wrap.onclick = () => { speak(char); w.animateCharacter(); };
+        });
+    }
+    if(isWrite) {
+        document.getElementById('w-mean').innerText = item.m;
+        ansShow = false;
+        [...item.c].forEach((char) => {
+            const wrap = createGrid(char, 'write', size);
+            document.getElementById('w-grids').appendChild(wrap);
+            initCanvas(wrap.querySelector('canvas'), size);
+        });
+    }
+    document.getElementById('p-char').innerText = item.c;
+    document.getElementById('p-input').value = '';
+}
+
+function createGrid(char, mode, size) {
+    const w = document.createElement('div'); w.className = 'tian-wrapper';
+    w.style.width = size + 'px'; w.style.height = size + 'px';
+    w.innerHTML = `<div class="tianzige"></div><div class="writer-div"></div>`;
+    if(mode === 'write') w.innerHTML += `<canvas width="${size}" height="${size}"></canvas>`;
+    return w;
+}
+
+function initCanvas(can, size) {
+    const ctx = can.getContext('2d');
+    let drawing = false; ctx.strokeStyle = "red"; ctx.lineWidth = 6; ctx.lineCap = "round";
+    const getP = (e) => { 
+        const r = can.getBoundingClientRect(); 
+        const t = e.touches ? e.touches[0] : e;
+        return { x: t.clientX - r.left, y: t.clientY - r.top };
+    };
+    can.onmousedown = can.ontouchstart = (e) => { e.preventDefault(); drawing = true; const p = getP(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+    can.onmousemove = can.ontouchmove = (e) => { if(!drawing) return; const p = getP(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+    can.onmouseup = can.ontouchend = () => { drawing = false; };
+}
+
+function handleAnswer() {
+    ansShow = !ansShow;
+    const item = vocabulary[curIdx];
+    const size = isLandscape ? 220 : 140;
+    const grids = document.querySelectorAll('#w-grids .writer-div');
+    grids.forEach((g, i) => {
+        g.innerHTML = '';
+        if(ansShow) HanziWriter.create(g, item.c[i], { width: size, height: size, padding: 5, strokeColor: '#bbb' });
+    });
+}
+
+function resetMatchGame() {
+    matchPool = [...vocabulary].sort(() => 0.5 - Math.random());
+    matchedCount = 0; initMatchRound();
+}
+
+function initMatchRound() {
+    const g = document.getElementById('match-grid'); g.innerHTML = ''; selectedMatch = [];
+    document.getElementById('match-progress').innerText = `Progress: ${matchedCount}/100`;
+    const roundItems = matchPool.slice(0, 3);
+    if(!roundItems.length) { showFinal(); return; }
+    let items = [];
+    roundItems.forEach(v => { items.push({t: v.c, id: v.c}, {t: v.p, id: v.c}, {t: v.m, id: v.c}); });
+    items.sort(() => 0.5 - Math.random()).forEach(it => {
+        const d = document.createElement('div'); d.className = 'match-item'; d.innerText = it.t;
+        d.style.cssText = "background:#fff; border:2px solid var(--primary); padding:10px; cursor:pointer; min-height:80px; display:flex; align-items:center; justify-content:center; border-radius:10px; font-weight:bold;";
+        d.onclick = () => {
+            if(d.classList.contains('selected') || d.style.visibility === 'hidden') return;
+            d.style.background = 'var(--primary)'; d.style.color = 'white'; d.classList.add('selected'); 
+            selectedMatch.push({el: d, id: it.id});
+            if(selectedMatch.length === 3) {
+                if(selectedMatch[0].id === selectedMatch[1].id && selectedMatch[1].id === selectedMatch[2].id) {
+                    speak(selectedMatch[0].id);
+                    selectedMatch.forEach(s => s.el.style.visibility = 'hidden');
+                    if(![...g.children].some(child => child.style.visibility !== 'hidden')) {
+                        matchedCount += roundItems.length; matchPool.splice(0, 3);
+                        setTimeout(initMatchRound, 500);
+                    }
+                } else { 
+                    const temp = [...selectedMatch];
+                    setTimeout(() => temp.forEach(s => { s.el.style.background = '#fff'; s.el.style.color = '#000'; s.el.classList.remove('selected'); }), 300);
+                }
+                selectedMatch = [];
+            }
+        };
+        g.appendChild(d);
+    });
+}
+
+function checkPinyin() {
+    const input = document.getElementById('p-input').value.toLowerCase().trim();
+    const correct = vocabulary[curIdx].p.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if(input === correct) {
+        document.getElementById('feedback-box').innerText='Correct! 👍';
+        setTimeout(nextWord, 800);
+    } else {
+        document.getElementById('feedback-box').innerText='Try again! ❌';
+        if(!wrongAnswers.includes(vocabulary[curIdx])) wrongAnswers.push(vocabulary[curIdx]);
+    }
+}
+
+function nextWord() { 
+    if(curIdx >= vocabulary.length - 1) { showFinal(); return; }
+    curIdx++; cleanup(); updateUI(); 
+}
+
+function showFinal() {
+    document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+    document.getElementById('result-screen').style.display = 'block';
+}
+
+function renderList() {
+    document.getElementById('list-view').innerHTML = vocabulary.map((v, i) => `
+        <div class="list-card" onclick="switchMode('learn', ${i})">
+            <span style="font-size:2rem;">${v.e}</span>
+            <div style="flex:1"><b style="font-size:1.4rem;">${v.c}</b><br><span class="list-pinyin">${v.p}</span></div>
+            <small style="color:#888;">${v.m}</small>
+        </div>`).join('');
+}
+
+function renderWrong() {
+    const container = document.getElementById('wrong-view');
+    if(!wrongAnswers.length) { container.innerHTML = "<p style='text-align:center;'>No mistakes yet!</p>"; return; }
+    container.innerHTML = wrongAnswers.map(v => {
+        const idx = vocabulary.findIndex(it => it.c === v.c);
+        return `<div class="list-card" onclick="switchMode('learn', ${idx})"><b style="font-size:1.4rem;">${v.c}</b><div style="margin-left:15px;"><span class="list-pinyin">${v.p}</span><br><small>${v.m}</small></div></div>`;
+    }).join('');
+}
+
+function cleanup() { writers.forEach(w => { if(w && w.destroy) w.destroy(); }); writers = []; document.getElementById('s-grids').innerHTML = ''; document.getElementById('w-grids').innerHTML = ''; }
+function speak(t) { if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); const m = new SpeechSynthesisUtterance(t); m.lang = 'zh-CN'; m.rate = 0.8; window.speechSynthesis.speak(m); } }
+
+window.onload = () => {
+    // 渲染水印
+    const wm = document.getElementById('wm-container');
+    for(let i=0; i<150; i++) {
+        const span = document.createElement('span');
+        span.innerText = 'XUSFUNCHINESE';
+        wm.appendChild(span);
+    }
+    // 渲染封面星空
+    const container = document.getElementById('star-container');
+    for(let i=0; i<30; i++) {
+        let s = document.createElement('div'); s.className = 'star';
+        s.style.setProperty('--angle', Math.random() * 360 + 'deg');
+        s.style.animationDuration = Math.random() * 1 + 1 + 's';
+        container.appendChild(s);
+    }
+};
+</script>
+</body>
+</html>
