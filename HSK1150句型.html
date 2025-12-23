@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, landscape=yes">
+    <title>HSK 1 Master - XUSFUNCHINESE</title>
+    <style>
+        :root {
+            --primary: #01579b; 
+            --accent: #e1f5fe;  
+            --gold: #fbc02d;
+            --pinyin: #d0021b; 
+            --night-sky: radial-gradient(circle at center, #001f3f 0%, #000510 100%);
+        }
+        
+        body { 
+            margin: 0; font-family: "Arial Black", "Segoe UI", Tahoma, sans-serif; 
+            background: linear-gradient(135deg, #0277bd 0%, #002f6c 100%); 
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative;
+        }
+
+        #cover-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--night-sky); z-index: 5000; display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; transition: opacity 0.8s ease-out, visibility 0.8s; overflow: hidden;
+        }
+
+        .star {
+            position: absolute; top: 50%; left: 50%; width: 2px; height: 2px;
+            background: white; border-radius: 50%; box-shadow: 0 0 10px #fff;
+            animation: shoot linear infinite;
+        }
+
+        @keyframes shoot {
+            0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(1000px); opacity: 0; width: 160px; }
+        }
+
+        .cover-content { text-align: center; z-index: 10; padding: 20px; }
+        .cover-title { font-size: 7.5vw; color: white; line-height: 1.2; text-transform: uppercase; margin: 0; }
+        .cover-subtitle { font-size: 10vw; color: var(--gold); margin-top: 5px; font-weight: 900; animation: pulse 2s infinite ease-in-out; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        .click-hint { margin-top: 20px; color: white; font-size: 20px; opacity: 0.8; letter-spacing: 2px; }
+
+        header { 
+            background: rgba(255,255,255,0.95); padding: 10px 20px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 100; 
+        }
+        .header-left { display: flex; align-items: center; }
+        .nav-btns button { 
+            padding: 8px 12px; margin-right: 5px; border-radius: 20px; border: 2px solid var(--primary); 
+            cursor: pointer; font-weight: bold; background: white; color: var(--primary);
+        }
+        .active-mode { background: var(--primary) !important; color: white !important; }
+        .inline-watermark { margin-left: 15px; font-weight: 900; font-size: 18px; color: var(--primary); opacity: 0.5; border-left: 2px solid #ddd; padding-left: 15px; }
+
+        main { flex: 1; display: flex; padding: 20px; gap: 15px; overflow: hidden; }
+        #left-panel { flex: 1; background: rgba(255,255,255,0.95); border-radius: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 4px solid var(--accent); position: relative; }
+        #right-panel { flex: 1.6; background: rgba(255,255,255,0.95); border-radius: 30px; padding: 30px; display: flex; flex-direction: column; overflow-y: auto; border: 4px solid var(--accent); position: relative; }
+
+        ruby { ruby-align: center; font-size: 40px; margin: 0 4px; line-height: 2.2; font-weight: 600; }
+        rt { font-size: 18px; color: var(--pinyin); font-weight: bold; }
+        .eng-hint { display: block; font-size: 24px; color: #333; margin-top: 15px; border-top: 2px dashed #ccc; padding-top: 10px; font-style: italic; }
+        #emoji-display { font-size: 120px; margin-bottom: 20px; }
+        
+        .option-btn { background: white; border: 2px solid var(--primary); padding: 15px; margin: 8px 0; border-radius: 15px; cursor: pointer; font-size: 20px; width: 100%; transition: 0.2s; }
+        
+        #scroll-view { display: none; width: 100%; overflow-y: auto; padding: 30px; background: white; border-radius: 30px; }
+        .list-row { border-bottom: 1px solid var(--accent); padding: 15px; cursor: pointer; }
+        .hidden { display: none !important; }
+        #timer-display { font-size: 24px; color: #d32f2f; font-weight: bold; margin-right: 15px; }
+
+        #result-screen { text-align: center; padding: 30px; width: 100%; }
+        .result-score { font-size: 100px; color: var(--gold); margin: 10px 0; text-shadow: 2px 4px 10px rgba(0,0,0,0.1); }
+        .subscribe-msg { font-size: 22px; color: var(--primary); font-weight: 900; margin-bottom: 40px; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+<div id="cover-page" onclick="enterApp()">
+    <div id="star-container"></div>
+    <div class="cover-content">
+        <h1 class="cover-title">50 MINI<br>DIALOGUES (1)</h1>
+        <div class="cover-subtitle">HSK 1</div>
+        <div class="click-hint">CLICK TO START</div>
+    </div>
+</div>
+
+<header>
+    <div class="header-left">
+        <div class="nav-btns">
+            <button onclick="setMode('study')" id="btn-study">📖 Study</button>
+            <button onclick="setMode('review')" id="btn-review">🔄 Review</button>
+            <button onclick="setMode('practice')" id="btn-practice">✍️ Practice</button>
+            <button onclick="setMode('quiz')" id="btn-quiz">⚡ Rush (30s)</button>
+            <button onclick="setMode('list')" id="btn-list">📜 Bank</button>
+            <button onclick="setMode('wrong')" id="btn-wrong" style="border-color: #f44336; color: #f44336;">❌ Mistake</button>
+        </div>
+        <div class="inline-watermark">XUSFUNCHINESE</div>
+    </div>
+    <div id="status-bar" style="display: flex; align-items: center;">
+        <span id="timer-display" class="hidden">00:30</span>
+        <span style="font-weight: bold; color: var(--primary);">Score: <span id="score-val">0</span></span>
+    </div>
+</header>
+
+<main>
+    <div id="main-ui" style="display: flex; width: 100%; gap: 15px;">
+        <div id="left-panel">
+            <div id="emoji-display">👋</div>
+            <button onclick="speakItem(true)" style="padding: 15px 40px; border-radius: 50px; cursor: pointer; background: var(--primary); color: white; border: none; font-weight: bold; font-size: 20px;">🔊 Audio</button>
+        </div>
+        <div id="right-panel">
+            <div id="display-area"></div>
+            <div id="hint-box" style="margin-top:20px; padding:15px; background:#fffde7; border-left:8px solid var(--gold); border-radius:12px;" class="hidden"></div>
+            <div id="interaction-area" style="margin-top: 15px;"></div>
+        </div>
+    </div>
+    <div id="scroll-view"></div>
+</main>
+
+<script>
+    const database = [
+        ["你好！", "nǐ hǎo !", "Hello!", "😊", {cn: "你好！", py: "nǐ hǎo !", en: "Hello!"}],
+        ["你叫什么名字？", "nǐ jiào shén me míng zi ?", "What's your name?", "📝", {cn: "我叫大卫。", py: "wǒ jiào dà wèi .", en: "My name is David."}],
+        ["你是老师吗？", "nǐ shì lǎo shī ma ?", "Are you a teacher?", "👨‍🏫", {cn: "不是，我是学生。", py: "bú shì , wǒ shì xué sheng .", en: "No, I am a student."}],
+        ["你是哪国人？", "nǐ shì nǎ guó rén ?", "Which country are you from?", "🌍", {cn: "我是美国人。", py: "wǒ shì měi guó rén .", en: "I am American."}],
+        ["谢谢你！", "xiè xie nǐ !", "Thank you!", "🙏", {cn: "不客气。", py: "bú kè qi .", en: "You're welcome."}],
+        ["再见！", "zài jiàn !", "Goodbye!", "👋", {cn: "再见！", py: "zài jiàn !", en: "Goodbye!"}],
+        ["你会说汉语吗？", "nǐ huì shuō hàn yǔ ma ?", "Can you speak Chinese?", "🗣️", {cn: "我会说一点儿。", py: "wǒ huì shuō yì diǎnr .", en: "I can speak a little bit."}],
+        ["你的老师是谁？", "nǐ de lǎo shī shì shéi ?", "Who is your teacher?", "👩‍🏫", {cn: "她是李老师。", py: "tā shì lǐ lǎo shī .", en: "She is Teacher Li."}],
+        ["今天几号？", "jīn tiān jǐ hào ?", "What's the date today?", "📅", {cn: "今天一月一号。", py: "jīn tiān yī yuè yī hào .", en: "Today is Jan 1st."}],
+        ["今天星期几？", "jīn tiān xīng qī jǐ ?", "What day is it today?", "🗓️", {cn: "今天星期三。", py: "jīn tiān xīng qī sān .", en: "Today is Wednesday."}],
+        ["你想喝什么？", "nǐ xiǎng hē shén me ?", "What to drink?", "☕", {cn: "我想喝茶。", py: "wǒ xiǎng hē chá .", en: "I want to drink tea."}],
+        ["你想吃什么？", "nǐ xiǎng chī shén me ?", "What to eat?", "🍚", {cn: "我想吃米饭。", py: "wǒ xiǎng chī mǐ fàn .", en: "I want to eat rice."}],
+        ["这个多少钱？", "zhè ge duō shao qián ?", "How much is this?", "💰", {cn: "三十块。", py: "sān shí kuài .", en: "Thirty RMB."}],
+        ["你会写汉字吗？", "nǐ huì xiě hàn zì ma ?", "Can you write Chinese?", "✍️", {cn: "我会写一些。", py: "wǒ huì xiě yì xiē .", en: "I can write some."}],
+        ["现在几点？", "xiàn zài jǐ diǎn ?", "What time is it?", "⌚", {cn: "十点十分。", py: "shí diǎn shí fēn .", en: "Ten past ten."}],
+        ["你家有几口人？", "nǐ jiā yǒu jǐ kǒu rén ?", "How many in family?", "👨‍👩‍👧‍👦", {cn: "三口人。", py: "sān kǒu rén .", en: "Three people."}],
+        ["你女儿多大了？", "nǐ nǚ ér duō dà le ?", "How old is daughter?", "👧", {cn: "她五岁了。", py: "tā wǔ suì le .", en: "She is five."}],
+        ["你会做中国菜吗？", "nǐ huì zuò zhōng guó cài ma ?", "Can you cook Chinese food?", "🍳", {cn: "我会做。", py: "wǒ huì zuò .", en: "I can."}],
+        ["他在哪儿？", "tā zài nǎ r ?", "Where is he?", "📍", {cn: "他在学校。", py: "tā zài xué xiào .", en: "He is at school."}],
+        ["书店在哪儿？", "shū diàn zài nǎ r ?", "Where is bookstore?", "📚", {cn: "在医院前面。", py: "zài yī yuàn qián mian .", en: "In front of hospital."}],
+        ["他在做什么？", "tā zài zuò shén me ?", "What is he doing?", "📱", {cn: "他在看电影。", py: "tā zài kàn diàn yǐng .", en: "Watching a movie."}],
+        ["昨天天气怎么样？", "zuó tiān tiān qì zěn me yàng ?", "How was the weather yesterday?", "☀️", {cn: "很好。", py: "hěn hǎo .", en: "Very good."}],
+        ["明天会下雨吗？", "míng tiān huì xià yǔ ma ?", "Will it rain tomorrow?", "☔", {cn: "不会下雨。", py: "bú huì xià yǔ .", en: "It won't rain."}],
+        ["你身体怎么样？", "shēn tǐ zěn me yàng ?", "How's your health?", "💪", {cn: "我身体很好。", py: "wǒ shēn tǐ hěn hǎo .", en: "I'm very well."}],
+        ["你买什么了？", "nǐ mǎi shén me le ?", "What did you buy?", "🛍️", {cn: "一些苹果。", py: "yì xiē píng guǒ .", en: "Some apples."}],
+        ["你怎么去学校？", "nǐ zěn me qù xué xiào ?", "How to go to school?", "🚲", {cn: "坐出租车。", py: "zuò chū zū chē .", en: "By taxi."}],
+        ["衣服漂亮吗？", "yī fu piào liang ma ?", "Are clothes pretty?", "👗", {cn: "很漂亮。", py: "hěn piào liang .", en: "Very pretty."}],
+        ["什么时候回家？", "shí hou huí jiā ?", "When go home?", "🏠", {cn: "下午五点。", py: "xià wǔ wǔ diǎn .", en: "At 5 PM."}],
+        ["你认识他吗？", "nǐ rèn shi tā ma ?", "Know him?", "👤", {cn: "不认识。", py: "bú rèn shi .", en: "Don't know him."}],
+        ["请坐，喝点水。", "qǐng zuò , hē diǎn shuǐ .", "Sit & drink water.", "🥤", {cn: "谢谢。", py: "xiè xie .", en: "Thank you."}],
+        ["那是谁的杯子？", "nà shì shéi de bēi zi ?", "Whose cup is that?", "🥛", {cn: "我爸爸的。", py: "wǒ bà ba de .", en: "My father's."}],
+        ["他在哪儿工作？", "tā zài nǎ r gōng zuò ?", "Where does he work?", "🏥", {cn: "他在医院。", py: "tā zài yī yuàn .", en: "At a hospital."}],
+        ["桌子上有什么？", "zhuō zi shang yǒu shén me ?", "What's on table?", "🖥️", {cn: "有一台电脑。", py: "yǒu yì tái diàn nǎo .", en: "A computer."}],
+        ["你喜欢看书吗？", "nǐ xǐ huan kàn shū ma ?", "Like reading?", "📖", {cn: "我很喜欢。", py: "wǒ hěn xǐ huan .", en: "I like it a lot."}],
+        ["这里有人吗？", "zhè lǐ yǒu rén ma ?", "Anyone here?", "🪑", {cn: "没有人。", py: "méi yǒu rén .", en: "No one."}],
+        ["你是哪年出生的？", "nǐ shì nǎ nián chū shēng de ?", "Born year?", "🍼", {cn: "一九九五年。", py: "yī jiǔ jiǔ wǔ nián .", en: "In 1995."}],
+        ["外面冷吗？", "wài mian lěng ma ?", "Cold outside?", "❄️", {cn: "不冷，很热。", py: "bù lěng , hěn rè .", en: "Not cold, hot."}],
+        ["你为什么不吃？", "nǐ wèi shén me bù chī ?", "Why not eat?", "🙅‍♂️", {cn: "我不饿。", py: "wǒ bú è .", en: "I'm not hungry."}],
+        ["你会开车吗？", "nǐ huì kāi chē ma ?", "Can you drive?", "🚗", {cn: "我会开。", py: "wǒ huì kāi .", en: "I can drive."}],
+        ["车站怎么走？", "chē zhàn zěn me zǒu ?", "How to get to station?", "🚉", {cn: "一直走。", py: "yì zhí zǒu .", en: "Go straight."}],
+        ["学汉语多久了？", "xué hàn yǔ duō jiǔ le ?", "Learned how long?", "⏳", {cn: "一年了。", py: "yì nián le .", en: "One year."}],
+        ["电影几点开始？", "diàn yǐng jǐ diǎn kāi shǐ ?", "Movie start time?", "🍿", {cn: "晚上七点。", py: "wǎn shang qī diǎn .", en: "7 PM."}],
+        ["买几本书？", "mǎi jǐ běn shū ?", "Buy how many books?", "🔖", {cn: "买三本。", py: "mǎi sān běn .", en: "Buy three."}],
+        ["汉语说得怎么样？", "hàn yǔ shuō de zěn me yàng ?", "How's your Chinese?", "👏", {cn: "不太好。", py: "bú tài hǎo .", en: "Not very good."}],
+        ["王先生在吗？", "wáng xiān sheng zài ma ?", "Is Mr. Wang here?", "🚪", {cn: "他不在。", py: "tā bú zài .", en: "He is out."}],
+        ["认识路吗？", "rèn shi lù ma ?", "Know the way?", "🗺️", {cn: "认识，跟我走。", py: "rèn shi , gēn wǒ zǒu .", en: "Yes, follow me."}],
+        ["一共多少钱？", "yí gòng duō shao qián ?", "Total cost?", "💴", {cn: "五十块。", py: "wǔ shí kuài .", en: "50 RMB."}],
+        ["可以打电话吗？", "kě yǐ dǎ diàn huà ma ?", "Can I call?", "📞", {cn: "可以。", py: "kě yǐ .", en: "Yes."}],
+        ["那是你的猫吗？", "nà shì nǐ de māo ma ?", "Is that your cat?", "🐱", {cn: "不是，我姐姐的。", py: "bú shì , wǒ jiě jie de .", en: "No, my sister's."}],
+        ["我们走吧！", "wǒ men zǒu ba !", "Let's go!", "🏃", {cn: "走吧。", py: "zǒu ba .", en: "Let's go."}]
+    ];
+
+    let currentMode = 'study', currentIndex = 0, score = 0, timer = null;
+    let wrongAnswers = [];
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playEffect(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if(type === 'coin') {
+            osc.frequency.setValueAtTime(987, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1318, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        } else {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(110, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        }
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+    }
+
+    function initStars() {
+        const container = document.getElementById('star-container');
+        for(let i=0; i<80; i++) {
+            let s = document.createElement('div'); s.className = 'star';
+            s.style.setProperty('--angle', Math.random() * 360 + 'deg');
+            s.style.animationDuration = Math.random() * 1.5 + 0.8 + 's';
+            container.appendChild(s);
+        }
+    }
+
+    function enterApp() {
+        document.getElementById('cover-page').style.opacity = '0';
+        setTimeout(() => { document.getElementById('cover-page').style.visibility = 'hidden'; }, 800);
+        setMode('study');
+    }
+
+    function speakText(text, callback = null) {
+        window.speechSynthesis.cancel();
+        const m = new SpeechSynthesisUtterance(text);
+        m.lang = 'zh-CN'; m.rate = 0.85;
+        if (callback) m.onend = callback;
+        window.speechSynthesis.speak(m);
+    }
+
+    function speakItem(fullMode = false) {
+        const item = database[currentIndex];
+        if (fullMode) speakText(item[0], () => setTimeout(() => speakText(item[4].cn), 400));
+        else speakText(item[0]);
+    }
+
+    function setMode(m) {
+        currentMode = m; currentIndex = 0; clearInterval(timer); score = 0;
+        document.getElementById('score-val').innerText = "0";
+        document.querySelectorAll('.nav-btns button').forEach(b => b.classList.remove('active-mode'));
+        if(document.getElementById('btn-'+m)) document.getElementById('btn-'+m).classList.add('active-mode');
+        document.getElementById('timer-display').classList.add('hidden');
+        
+        document.getElementById('right-panel').innerHTML = `<div id="display-area"></div><div id="hint-box" class="hidden"></div><div id="interaction-area"></div>`;
+
+        if(m === 'list' || m === 'wrong') {
+            document.getElementById('main-ui').classList.add('hidden');
+            document.getElementById('scroll-view').style.display = 'block';
+            if (m === 'list') renderList();
+            else renderWrongBook();
+        } else {
+            document.getElementById('main-ui').classList.remove('hidden');
+            document.getElementById('scroll-view').style.display = 'none';
+            if (m === 'quiz') startRush();
+            render();
+        }
+    }
+
+    function startRush() {
+        let timeLeft = 30;
+        const display = document.getElementById('timer-display');
+        display.classList.remove('hidden');
+        timer = setInterval(() => {
+            timeLeft--;
+            display.innerText = `00:${timeLeft < 10 ? '0'+timeLeft : timeLeft}`;
+            if (timeLeft <= 0) { clearInterval(timer); showFinalResult(); }
+        }, 1000);
+    }
+
+    function showFinalResult() {
+        const praises = ["太棒了！", "干得漂亮！", "你真了不起！"];
+        speakText(praises[Math.floor(Math.random()*praises.length)]);
+        document.getElementById('right-panel').innerHTML = `
+            <div id="result-screen">
+                <div class="result-score">${score}</div>
+                <div class="subscribe-msg">Please subscribe to "Xu's Fun Chinese" on Youtube to learn more!</div>
+                <button class="option-btn" onclick="setMode('study')" style="background:var(--primary); color:white; width:220px; margin: 0 auto;">Back to Study</button>
+            </div>
+        `;
+    }
+
+    function generateRubyHtml(text, pinyinStr) {
+        const chars = text.split(''); const pys = pinyinStr.split(' ');
+        let html = ""; let pyIdx = 0;
+        chars.forEach(c => {
+            if(/[\u4e00-\u9fa5]/.test(c)) {
+                html += `<ruby>${c}<rt>${pys[pyIdx] || ''}</rt></ruby>`; pyIdx++;
+            } else if (![' ', '!', '?', '！', '？', '.', '。', ','].includes(c)) {
+                html += c; pyIdx++;
+            } else html += c;
+        });
+        return html;
+    }
+
+    function render() {
+        const item = database[currentIndex];
+        const display = document.getElementById('display-area');
+        const interaction = document.getElementById('interaction-area');
+        const hint = document.getElementById('hint-box');
+        
+        document.getElementById('emoji-display').innerText = item[3];
+        interaction.innerHTML = ""; 
+        hint.className = 'hidden';
+        hint.style = "margin-top:20px; padding:15px; background:#fffde7; border-left:8px solid var(--gold); border-radius:12px;";
+
+        display.innerHTML = generateRubyHtml(item[0], item[1]) + `<span class="eng-hint">${item[2]}</span>`;
+
+        if(currentMode === 'study' || currentMode === 'review') {
+            hint.innerHTML = `<div style="font-size:26px; cursor:pointer;" onclick="speakText('${item[4].cn}')">${generateRubyHtml(item[4].cn, item[4].py)}</div><div style="font-style:italic; color:#666; margin-top:8px;">${item[4].en}</div>`;
+            if(currentMode === 'study') {
+                hint.classList.remove('hidden');
+                speakItem(false); 
+            } else {
+                interaction.innerHTML = `<button class="option-btn" onclick="document.getElementById('hint-box').classList.toggle('hidden')">👁️ Show/Hide Reply</button>`;
+                speakItem(false);
+            }
+            interaction.innerHTML += `<button class="option-btn" onclick="nextCard()" style="background:var(--primary); color:white;">Next →</button>`;
+        } else {
+            let opts = [item[4].cn, "我不认识。", "他在家里。", "对不起。", "再见。"].slice(0, 4);
+            if(!opts.includes(item[4].cn)) opts[0] = item[4].cn;
+            opts.sort(() => Math.random() - 0.5);
+            opts.forEach(o => {
+                const b = document.createElement('button'); b.className = 'option-btn'; b.innerText = o;
+                b.onclick = () => {
+                    if(o === item[4].cn) {
+                        playEffect('coin'); score += 10; document.getElementById('score-val').innerText = score;
+                        b.style.background = "#4caf50"; b.style.color = "white";
+                        
+                        if(currentMode === 'practice') {
+                            speakText(item[4].cn, () => setTimeout(nextCard, 300));
+                        } else {
+                            speakText(item[4].cn);
+                            nextCard();
+                        }
+                    } else { 
+                        playEffect('fail'); 
+                        b.style.background = "#f44336"; b.style.color = "white"; 
+                        // 记录错题
+                        if (!wrongAnswers.includes(item)) {
+                            wrongAnswers.push(item);
+                        }
+                    }
+                };
+                interaction.appendChild(b);
+            });
+            speakItem(false);
+        }
+    }
+
+    function nextCard() {
+        currentIndex++;
+        if (currentIndex >= database.length) {
+            if (currentMode === 'quiz' || currentMode === 'practice') showFinalResult();
+            else { currentIndex = 0; render(); }
+        } else render();
+    }
+
+    function renderList() {
+        const view = document.getElementById('scroll-view');
+        view.innerHTML = "<h2>📜 HSK 1 Sentence Bank</h2>";
+        database.forEach((it, idx) => {
+            const r = document.createElement('div'); r.className = 'list-row';
+            r.innerHTML = `<strong>${idx+1}.</strong> <span style="font-size:24px;">${it[0]}</span><br><span style="color:var(--pinyin); font-weight:bold;">${it[1]}</span><br><span style="color:#666">${it[2]}</span>`;
+            r.onclick = () => speakText(it[0]);
+            view.appendChild(r);
+        });
+    }
+
+    function renderWrongBook() {
+        const view = document.getElementById('scroll-view');
+        view.innerHTML = "<h2>❌ My Mistakes</h2>";
+        if (wrongAnswers.length === 0) {
+            view.innerHTML += "<p style='font-size:20px; color:#666;'>No mistakes recorded yet. Keep practicing!</p>";
+            return;
+        }
+        wrongAnswers.forEach((it, idx) => {
+            const r = document.createElement('div'); r.className = 'list-row';
+            r.innerHTML = `<strong>${idx+1}.</strong> <span style="font-size:24px;">${it[0]}</span><br><span style="color:var(--pinyin); font-weight:bold;">${it[1]}</span><br><span style="color:#666">${it[2]}</span><div style="margin-top:8px; color:var(--primary); font-weight:bold;">Reply: ${it[4].cn}</div>`;
+            r.onclick = () => speakText(it[0]);
+            view.appendChild(r);
+        });
+    }
+
+    window.onload = () => initStars();
+</script>
+</body>
+</html>
