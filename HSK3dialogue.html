@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, landscape=yes">
+    <title>HSK 3 Dialogues - XUSFUNCHINESE</title>
+    <style>
+        :root {
+            --primary: #01579b; --accent: #e1f5fe; --gold: #fbc02d;
+            --pinyin: #ff0000; --night-sky: radial-gradient(circle at center, #001f3f 0%, #000510 100%);
+        }
+        body { margin: 0; font-family: "Arial", sans-serif; background: linear-gradient(135deg, #0277bd 0%, #002f6c 100%); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* 金光闪闪的Cover */
+        #cover-page {
+            position: fixed; top:0; left:0; width:100%; height:100%; background:var(--night-sky);
+            z-index:5000; display:flex; flex-direction:column; justify-content:center; align-items:center; cursor:pointer;
+        }
+        .shiny-title {
+            font-size: 10vw; font-weight: 900; text-align: center;
+            background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px rgba(255,215,0,0.5));
+            animation: shine 3s infinite linear; line-height: 1.1;
+        }
+        @keyframes shine { 0% { background-position: 0%; } 100% { background-position: 200%; } }
+
+        header { background: rgba(255,255,255,0.95); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 100; }
+        .nav-btns button { padding: 8px 15px; margin-right: 5px; border-radius: 20px; border: 2px solid var(--primary); cursor: pointer; font-weight: bold; background: white; color: var(--primary); font-size: 13px; }
+        .active-mode { background: var(--primary) !important; color: white !important; }
+        
+        main { flex: 1; display: flex; padding: 20px; gap: 15px; overflow: hidden; position: relative; }
+        #left-panel { flex: 0.7; background: rgba(255,255,255,0.95); border-radius: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 4px solid var(--accent); position: relative; }
+        #right-panel { flex: 1.3; background: rgba(255,255,255,0.95); border-radius: 30px; padding: 25px; overflow-y: auto; border: 4px solid var(--accent); }
+        
+        .dialogue-box { margin-bottom: 20px; padding: 15px; border-radius: 12px; background: #fff; border-left: 6px solid var(--primary); cursor: pointer; transition: 0.2s; }
+        .dialogue-box:hover { background: #f0faff; }
+        
+        ruby { font-size: 26px; font-weight: 600; margin: 0 3px; display: inline-flex; flex-direction: column-reverse; align-items: center; }
+        rt { font-size: 14px; color: var(--pinyin); font-weight: bold; margin-bottom: 4px; }
+        
+        #list-container, #quiz-container { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 200; overflow-y: auto; padding: 40px; box-sizing: border-box; }
+        .quiz-option { width: 100%; padding: 15px; margin: 8px 0; border: 2px solid var(--primary); border-radius: 12px; background: white; cursor: pointer; font-size: 18px; font-weight: bold; }
+        
+        #timer-bar { position: absolute; top: 0; left: 0; height: 8px; background: #ff5252; width: 0%; transition: width 0.1s linear; border-radius: 4px; }
+        .watermark { position: fixed; bottom: 10px; right: 20px; color: rgba(255,255,255,0.4); font-weight: bold; font-style: italic; pointer-events: none; z-index: 1000; }
+    </style>
+</head>
+<body>
+
+<div id="cover-page" onclick="enterApp()">
+    <div class="shiny-title">HSK3<br>Dialogues</div>
+    <p style="color:white; margin-top: 30px; letter-spacing: 2px;">CLICK TO START</p>
+</div>
+
+<div class="watermark">XUSFUNCHINESE</div>
+
+<header>
+    <div class="nav-btns">
+        <button onclick="setMode('study')" id="btn-study" class="active-mode">📖 学习</button>
+        <button onclick="setMode('quiz')" id="btn-quiz">📝 测试</button>
+        <button onclick="setMode('rush')" id="btn-rush" style="border-color: #ff5252; color: #ff5252;">⚡ RUSH</button>
+        <button onclick="setMode('mistake')" id="btn-mistake" style="border-color: #7b1fa2; color: #7b1fa2;">❌ 错题本(<span id="mistake-count">0</span>)</button>
+        <button onclick="setMode('list')" id="btn-list">📜 列表</button>
+    </div>
+    <div id="stat-display" style="font-weight: bold;">进度: <span id="progress-text">1</span>/35</div>
+</header>
+
+<main>
+    <div id="study-ui" style="display: flex; width: 100%; height: 100%; gap: 15px;">
+        <div id="left-panel">
+            <div id="timer-bar"></div>
+            <div id="emoji-display" style="font-size: 100px;">🏢</div>
+            <button onclick="playFullDialogue()" style="margin-top:20px; padding:15px 30px; border-radius:30px; background:var(--primary); color:white; border:none; cursor:pointer; font-weight:bold;">🔊 朗读对话</button>
+            <div id="rush-score-ui" style="display:none; margin-top:10px; font-size:24px; color:red; font-weight:bold;">得分: <span id="rush-score">0</span></div>
+            <div style="margin-top:30px; display:flex; gap:10px;">
+                <button onclick="prev()" style="padding:10px 20px; border-radius:10px;">◀</button>
+                <button onclick="next()" style="background:var(--gold); border:none; padding:10px 20px; font-weight:bold; border-radius:10px;">▶</button>
+            </div>
+        </div>
+        <div id="right-panel"><div id="content-area"></div></div>
+    </div>
+    <div id="list-container">
+        <button onclick="setMode('study')" style="float:right; padding:10px; background:red; color:white; border:none; border-radius:5px;">关闭</button>
+        <div id="list-content"></div>
+    </div>
+    <div id="quiz-container">
+        <div id="quiz-content" style="max-width: 600px; margin: 0 auto; text-align: center;">
+            <h2 id="quiz-title">测试模式</h2>
+            <div id="quiz-prompt" style="font-size:24px; margin:20px 0; padding:25px; background:#f0f7ff; border-radius:15px; border:2px solid var(--primary);"></div>
+            <div id="quiz-options"></div>
+        </div>
+    </div>
+</main>
+
+<script>
+    const database = [
+        {emoji: "💍", lines: [{cn: "你决定跟他结婚了吗？他那么矮。", py: "nǐ jué dìng gēn tā jié hūn le ma ? tā nà me ǎi", en: "Have you decided to marry him? He is so short."},{cn: "虽然他矮，但他的信用卡没有限额。", py: "suī rán tā ǎi , dàn tā de xìn yòng kǎ méi yǒu xiàn é", en: "Although he's short, his credit card has no limit."},{cn: "难怪你发现他越长越帅了。", py: "nán guài nǐ fā xiàn tā yuè zhǎng yuè shuài le", en: "No wonder you find him more and more handsome."}]},
+        {emoji: "🏢", lines: [{cn: "阿姨，电梯坏了，我们必须爬楼。", py: "ā yí , diàn tī huài le , wǒ men bì xū pá lóu", en: "Auntie, the elevator is broken, we must climb the stairs."},{cn: "爬楼？我的脚刚才运动时受伤了。", py: "pá lóu ? wǒ de jiǎo gāng cái yùn dòng shí shòu shāng le", en: "Climb stairs? My foot was just injured during exercise."},{cn: "别担心，我会背您上去，顺便搬您的行李。", py: "bié dān xīn , wǒ huì bēi nín shàng qù , shùn biàn bān nín de xíng lǐ", en: "Don't worry, I'll carry you up and move your luggage as well."}]},
+        {emoji: "🐼", lines: [{cn: "校长，那只熊猫在办公室里偷喝果汁！", py: "xiào zhǎng , nà zhī xióng māo zài bàn gōng shì lǐ tōu hē guǒ zhī", en: "Principal, that panda is stealing juice in the office!"},{cn: "别影响它，它正在为比赛练习。", py: "bié yǐng xiǎng tā , tā zhèng zài wèi bǐ sài liàn xí", en: "Don't disturb it, it's practicing for the competition."},{cn: "可是它几乎把所有的饮料都喝完了。", py: "kě shì tā jī hū bǎ suǒ yǒu de yǐn liào dōu hē wán le", en: "But it has almost finished all the drinks."}]},
+        {emoji: "✈️", lines: [{cn: "你的护照过期了，必须换新的。", py: "nǐ de hù zhào guò qī le , bì xū huàn xīn de", en: "Your passport has expired, you must get a new one."},{cn: "真倒霉，我刚把行李箱搬到车上。", py: "zhēn dǎo méi , wǒ gāng bǎ xíng lǐ xiāng bān dào chē shàng", en: "So unlucky, I just moved the suitcase to the car."},{cn: "看来你现在只能在家里看新闻旅游了。", py: "kàn lái nǐ xiàn zài zhǐ néng zài jiā lǐ kàn xīn wén lǚ yóu le", en: "It seems you can only travel by watching news at home now."}]},
+        {emoji: "🍜", lines: [{cn: "这碗羊肉太咸了，菜单上说是甜的。", py: "zhè wǎn yáng ròu tài xián le , cài dān shàng shuō shì tián de", en: "This mutton is too salty, the menu said it's sweet."},{cn: "对不起，服务员刚才放错了盐和糖。", py: "duì bù qǐ , fú wù yuán gāng cái fàng cuò le yán hé táng", en: "Sorry, the waiter just mixed up the salt and sugar."},{cn: "如果你不给我换，我会非常生气的。", py: "rú guǒ nǐ bù gěi wǒ huàn , wǒ huì fēi cháng shēng qì de", en: "If you don't change it for me, I will be very angry."}]},
+        {emoji: "🤒", lines: [{cn: "你发烧了，声音听起来很不舒服。", py: "nǐ fā shāo le , shēng yīn tīng qǐ lái hěn bù shū fu", en: "You have a fever, your voice sounds very uncomfortable."},{cn: "医生让我多休息，不要一直玩游戏。", py: "yī shēng ràng wǒ duō xiū xi , bú yào yì zhí wán yóu xì", en: "The doctor told me to rest more and not play games all the time."},{cn: "那你为什么还在电脑前练习跳舞？", py: "nà nǐ wèi shén me hái zài diàn nǎo qián liàn xí tiào wǔ", en: "Then why are you still practicing dancing in front of the computer?"}]},
+        {emoji: "👔", lines: [{cn: "这件衬衫很漂亮，就是有点儿贵。", py: "zhè jiàn chèn shān hěn piào liang , jiù shì yǒu diǎnr guì", en: "This shirt is beautiful, it's just a bit expensive."},{cn: "虽然贵，但穿上它会显得聪明一点儿。", py: "suī rán guì , dàn chuān shàng tā huì xiǎn de cōng ming yì diǎnr", en: "Although expensive, wearing it will make you look a bit smarter."},{cn: "好吧，我决定买下它送给爷爷。", py: "hǎo ba , wǒ jué dìng mǎi xià tā sòng gě i yé ye", en: "Okay, I decided to buy it for my grandpa."}]},
+        {emoji: "🥢", lines: [{cn: "你习惯用筷子吃西餐吗？真特别。", py: "nǐ xí guàn yòng kuài zi chī xī cān ma ? zhēn tè bié", en: "Are you used to using chopsticks for Western food? So special."},{cn: "因为我找不到了叉子，只能这样了。", py: "yīn wèi wǒ zhǎo bù dào le chā zi , zhǐ néng zhè yàng le", en: "Because I couldn't find a fork, I have to do this."},{cn: "你应该向服务员要求换一套餐具。", py: "yīng gāi xiàng fú wù yuán yāo qiú huàn yí tào cān jù", en: "You should ask the waiter to change a set of tableware."}]},
+        {emoji: "👓", lines: [{cn: "我的眼镜不见了，黑板上的字看不清。", py: "wǒ de yǎn jìng bú jiàn le , hēi bǎn shàng de zì kàn bù qīng", en: "My glasses are gone, I can't see the words on the board."},{cn: "是不是落在刚才那个女生的办公室里了？", py: "shì bú shì luò zài gāng cái nà gè nǚ shēng de bàn gōng shì lǐ le", en: "Did you leave them in that girl's office just now?"},{cn: "别开玩笑，麻烦你帮我找一下眼镜儿。", py: "bié kāi wán xiào , má fan nǐ bāng wǒ zhǎo yí xià yǎn jìng r", en: "Stop joking, please help me look for my glasses."}]},
+        {emoji: "🍌", lines: [{cn: "这些香蕉很新鲜，三块五一斤。", py: "zhè xiē xiāng jiāo hěn xīn xiān , sān kuài wǔ yì jīn", en: "These bananas are very fresh, 3.5 yuan per jin."},{cn: "如果你买十斤，我就送你一袋葡萄。", py: "rú guǒ nǐ mǎi shí jīn , wǒ jù sòng nǐ yí dài pú tao", en: "If you buy 10 jin, I'll give you a bag of grapes."},{cn: "十斤太多了，我几乎吃不完。", py: "shí jīn tài duō le , wǒ jī hū chī bù wán", en: "10 jin is too much, I can almost not finish them."}]},
+        {emoji: "🎨", lines: [{cn: "你画的这只鸟真像，像真的一样。", py: "nǐ huà de zhè zhī niǎo zhēn xiàng , xiàng zhēn de yí yàng", en: "The bird you painted looks so real, just like a real one."},{cn: "谢谢，其实它是我的猫在纸上走出来的。", py: "xiè xie , qí shí tā shì wǒ de māo zài zhǐ shàng zǒu chū lái de", en: "Thanks, actually my cat walked it out on the paper."},{cn: "看来你的猫也有很好的爱好。", py: "kàn lái nǐ de māo yě yǒu hěn hǎo de ài hào", en: "It seems your cat also has a great hobby."}]},
+        {emoji: "🏨", lines: [{cn: "这家宾馆的房间很干净，也很安静。", py: "zhè jiā bīn guǎn de fáng jiān hěn gān jìng , yě hěn ān jìng", en: "The rooms in this hotel are very clean and quiet."},{cn: "虽然有点儿贵，但服务员非常热情。", py: "suī rán yǒu diǎnr guì , dàn fú wù yuán fēi cháng rè qíng", en: "Although a bit expensive, the waiters are very warm."},{cn: "我决定在这里住两个星期，直到没钱。", py: "wǒ jué dìng zài zhè lǐ zhù liǎng gè xīng qī , zhí dào méi qián", en: "I decided to stay here for two weeks until I run out of money."}]},
+        {emoji: "💡", lines: [{cn: "你想出解决那个数学题的办法了吗？", py: "nǐ xiǎng chū jiě gué nà gè shù xué tí de bàn fǎ le ma", en: "Have you thought of a way to solve that math problem?"},{cn: "想出来了，我去问了我的数学老师。", py: "xiǎng chū lái le , wǒ qù wèn le wǒ de shù xué lǎo shī", en: "Yes, I went to ask my math teacher."},{cn: "你真聪明，大家都要向你学习这种办法。", py: "nǐ zhēn cōng ming , dà jiā dōu yào xiàng nǐ xué xí zhè zhǒng bàn fǎ", en: "You're so clever, everyone should learn this method from you."}]},
+        {emoji: "🎓", lines: [{cn: "你大学毕业以后打算做什么？", py: "nǐ dà xué bì yè yǐ hòu dǎ suàn zuò shén me", en: "What do you plan to do after graduating from university?"},{cn: "我想去国外留学，学习怎么做菜。", py: "wǒ xiǎng qù guó wài liú xué , xué xí zěn me zuò cài", en: "I want to study abroad to learn how to cook."},{cn: "祝你成功，未来你一定是有名的厨师。", py: "zhù nǐ chéng gōng , wèi lái nǐ yí dìng shì yǒu míng de chú shī", en: "Wish you success, you will surely be a famous chef in the future."}]},
+        {emoji: "🌦️", lines: [{cn: "突然下雨了，我没带伞，真倒霉。", py: "tū rán xià yǔ le , wǒ méi dài sǎn , zhēn dǎo méi", en: "It rained suddenly, I didn't bring an umbrella, so unlucky."},{cn: "我带了，我们一起打伞走吧。", py: "wǒ dài le , wǒ men yì qǐ dǎ sǎn zǒu ba", en: "I brought one, let's walk under the umbrella together."},{cn: "谢谢你，你总是这么愿意帮忙，除了跟你借钱的时候。", py: "xiè xie nǐ , nǐ zǒng shì zhè me yuàn yì bāng máng , chú le gēn nǐ jiè qián de shí hou", en: "Thank you, you're always so willing to help, except when borrowing money from you."}]},
+        {emoji: "🎒", lines: [{cn: "这个包太重了，你里面放了什么？", py: "zhè gè bāo tài zhòng le , nǐ lǐ miàn fàng le shén me", en: "This bag is too heavy, what did you put inside?"},{cn: "全是历史书和一些厚厚的字典。", py: "quán shì lì shǐ shū hé yì xiē hòu hòu de zì diǎn", en: "It's all history books and some thick dictionaries."},{cn: "你真是个刻苦的学生，值得大家学习。", py: "nǐ zhēn shì gè kè kǔ de xué sheng , zhí dé dà jiā xué xí", en: "You're a hardworking student, worth learning from for everyone."}]},
+        {emoji: "🥤", lines: [{cn: "服务员，请给我一杯冰饮料，要非常凉。", py: "fú wù yuán , qǐng gěi wǒ yì bēi bīng yǐn liào , yào fēi cháng liáng", en: "Waiter, please give me a glass of cold drink, very cold."},{cn: "好的，您还需要点儿别的甜点吗？", py: "hǎo de , nín hái xū yào diǎnr bié de tián diǎn ma", en: "Okay, do you need any other desserts?"},{cn: "不需要了，我已经吃得太饱，走不动了。", py: "bù xū yào le , wǒ yǐ jīng chī de tài bǎo , zǒu bú dòng le", en: "No need, I'm already too full to walk."}]},
+        {emoji: "👂", lines: [{cn: "奶奶，您的耳朵最近好点儿了吗？", py: "nǎi nai , nín de ěr duo zuì jìn hǎo diǎnr le ma", en: "Grandma, is your ear better lately?"},{cn: "你说什么？我听不见，声音大一点儿。", py: "nǐ shuō shén me ? wǒ tīng bú jiàn , shēng yīn dà yì diǎnr", en: "What did you say? I can't hear you, a bit louder."},{cn: "我说，我们出去走走，今天阳光很好。", py: "wǒ shuō , wǒ men chū qù zǒu zou , jīn tiān yáng guāng hěn hǎo", en: "I said, let's go out for a walk, the sunshine is great today."}]},
+        {emoji: "🎁", lines: [{cn: "祝你生日快乐！这是送给你的礼物。", py: "zhù nǐ shēng rì kuài lè ! zhè shì sòng gěi nǐ de lǐ wù", en: "Happy birthday! This is a gift for you."},{cn: "谢谢！没想到你还记得我的生日，虽然晚了半个月。", py: "xiè xie ! méi xiǎng dào nǐ hái jì de wǒ de shēng rì , suī rán wǎn le bàn gè yuè", en: "Thanks! I didn't expect you to remember my birthday, although it's half a month late."},{cn: "因为我迷路了，花了我很多时间。", py: "yīn wèi wǒ mí lù le , huā le wǒ hěn duō shí jiān", en: "Because I got lost, it took me a lot of time."}]},
+        {emoji: "🏃", lines: [{cn: "你每天运动多长时间？身体这么好。", py: "nǐ mèi tiān yùn dòng duō cháng shí jiān ? shēn tǐ zhè me hǎo", en: "How long do you exercise every day? Your body is so good."},{cn: "大约一个小时，通常是追公交车。", py: "dà yuē yí gè xiǎo shí , tōng cháng shì zhuī gōng jiāo chē", en: "About an hour, usually chasing buses."},{cn: "难怪你的跑步成绩提高得这么快。", py: "nán guài nǐ de pǎo bù chéng jì tí gāo de zhè me kuài", en: "No wonder your running results improved so fast."}]},
+        {emoji: "👞", lines: [{cn: "你的这双黑皮鞋是在哪儿买的？", py: "nǐ de zhè shuāng hēi pí xié shì zài nǎr mǎi de", en: "Where did you buy these black leather shoes?"},{cn: "在市中心的超市，价格非常便宜。", py: "zài shì zhōng xīn de chāo shì , jià gé fēi cháng pián yi", en: "In the downtown supermarket, the price is very cheap."},{cn: "我也想去买一双，这样就没人看我的脸了。", py: "wǒ yě xiǎng qù mǎi yì shuāng , zhè yàng jiù méi rén kàn wǒ de liǎn le", en: "I want to buy a pair too, so no one will look at my face."}]},
+        {emoji: "🌨️", lines: [{cn: "外面的雪下得很大，天气非常冷。", py: "wài miàn de xuě xià de hěn dà , tiān qì fēi cháng lěng", en: "The snow outside is very heavy, the weather is very cold."},{cn: "我们还是留在房间里复习汉字吧。", py: "wǒ men hái shì liú zài fáng jiān lǐ fù xí hàn zì ba", en: "Let's stay in the room and review Chinese characters instead."},{cn: "好主意，我正好有很多词没记住。", py: "hǎo zhǔ yi , wǒ zhèng hǎo yǒu hěn duō cí méi jì zhù", en: "Good idea, I happen to have many words I haven't memorized."}]},
+        {emoji: "🗺️", lines: [{cn: "这张地图不清楚，我们好像走反了。", py: "zhè zhāng dì tú bù qīng chu , wǒ men hǎo xiàng zǒu fǎn le", en: "This map is not clear, we seem to have gone the wrong way."},{cn: "刚才那个路口应该向北方转弯。", py: "gāng cái nà gè lù kǒu yīng gāi xiàng běi fāng zhuǎn wān", en: "At the intersection just now, we should have turned north."},{cn: "别着急，解决迷路需要耐心。", py: "bié zháo jí , jiě jué mí lù xū yào nài xīn", en: "Don't worry, solving getting lost requires patience."}]},
+        {emoji: "💼", lines: [{cn: "经理，这个会议什么时候才能结束？", py: "jīng lǐ , zhè gè huì yì shén me shí hou cái néng jié shù", en: "Manager, when will this meeting end?"},{cn: "等大家都看到我的新衬衫，就可以走了。", py: "děng dà jiā dōu kàn dào le wǒ de xīn chèn shān , jiù kě yǐ zǒu le", en: "When everyone sees my new shirt, we can leave."},{cn: "我还要赶银行的班，必须快一点儿。", py: "wǒ hái yào gǎn yín háng de bān , bì xū kuài yì diǎnr", en: "I still have to catch my bank shift, I must be a bit faster."}]},
+        {emoji: "🎮", lines: [{cn: "这个电子游戏太有意思了！", py: "zhè gè diàn zǐ yóu xì tài yǒu yì si le", en: "This electronic game is so interesting!"},{cn: "虽然有意思，但你已经玩了一整天了。", py: "suī rán yǒu yì si , dàn nǐ yǐ jīng wán le yì zhěng tiān le", en: "Although interesting, you've been playing all day."},{cn: "最后玩半个小时，我保证去写作业。", py: "zuì hòu wán bàn gè xiǎo shí , wǒ bǎo zhèng qù xiě zuò yè", en: "Just half an hour more, I promise to do my homework."}]},
+        {emoji: "📺", lines: [{cn: "昨天的体育新闻你看了吗？太奇怪了。", py: "zuó tiān de tǐ yù xīn wén nǐ kàn le ma ? tài qí guài le", en: "Did you watch the sports news yesterday? It was so weird."},{cn: "没看，我一直在练习跳舞，为了减肥。", py: "méi kàn , wǒ yì zhí zài liàn xí tiào wǔ , wèi le jiǎn féi", en: "No, I've been practicing dancing to lose weight."},{cn: "你的水平提高得真快，虽然没变瘦。", py: "nǐ de shuǐ píng tí gāo de zhēn kuài , suī rán méi biàn shòu", en: "Your level improved so fast, although you haven't gotten thinner."}]},
+        {emoji: "🌳", lines: [{cn: "这个花园的环境真舒服，空气新鲜。", py: "zhè gè huā yuán de huán jìng zhēn shū fu , kōng qì xīn xiān", en: "The environment of this garden is so comfortable, the air is fresh."},{cn: "我们去那边的长椅上坐一会儿吧。", py: "wǒ men qù nà biān de cháng yǐ shàng zuò yí huìr ba", en: "Let's sit on the bench over there for a while."},{cn: "好主意，顺便检查一下你借我的钱。", py: "hǎo zhǔ yi , shùn biàn jiǎn chá yí xià nǐ jiè wǒ de qián", en: "Good idea, and check the money you borrowed from me by the way."}]},
+        {emoji: "🥘", lines: [{cn: "你觉得这道菜的味道怎么样？", py: "nǐ jué de zhè dào cài de wèi dào zěn me yàng", en: "What do you think of the taste of this dish?"},{cn: "非常好吃，除了有点儿咸。", py: "fēi cháng hǎo chī , chú le yǒu diǎnr xián", en: "Very delicious, except it's a bit salty."},{cn: "那你多喝点儿果汁，以后我经常给你做。", py: "nà nǐ duō hē diǎnr guǒ zhī , yǐ hòu wǒ jīng cháng gěi nǐ zuò", en: "Then drink some more juice, I'll cook for you often in the future."}]},
+        {emoji: "⚖️", lines: [{cn: "最近这个包的价格一般。", py: "zuì jìn zhè gè bāo de jià gé yì bān", en: "Recently, the price of this bag is ordinary."},{cn: "我们可以去别的银行或者超市看看。", py: "wǒ men kě yǐ qù bié de yín háng huò zhě chāo shì kàn kàn", en: "We can go to other banks or supermarkets to have a look."},{cn: "没问题，相信我们一定能选到最便宜的。", py: "méi wèn tí , xiāng xìn wǒ men yí dìng néng xuǎn dào zuì pián yi de", en: "No problem, I believe we will definitely be able to choose the cheapest one."}]},
+        {emoji: "🚌", lines: [{cn: "去机场是坐公交车还是坐地铁？", py: "qù jī chǎng shì zuò gōng jiāo chē hái shì zuò dì tiě", en: "To the airport, take the bus or the subway?"},{cn: "坐地铁吧，公交车上经常有人又哭又叫。", py: "zuò dì tiě ba , gōng jiāo chē shàng jīng cháng yǒu rén yòu kū yòu jiào", en: "Take the subway, people on the bus are often crying and shouting."},{cn: "有道理，那我们现在马上出发。", py: "yǒu dào lǐ , nà wǒ men xiàn zài mǎ shàng chū fā", en: "Makes sense, then let's set off right now."}]},
+        {emoji: "🥩", lines: [{cn: "除了羊肉，你还喜欢吃什么？", py: "chú le yáng ròu , nǐ hái xǐ huan chī shén me", en: "Besides mutton, what else do you like to eat?"},{cn: "我还喜欢吃牛肉和免费的蔬菜。", py: "wǒ hái xǐ huan chī niú ròu hé miǎn fèi de shū cài", en: "I also like beef and free vegetables."},{cn: "那我们去附近那家有名的餐厅吧，你付钱。", py: "nà wǒ men qù fù jìn nà jiā yǒu míng de cān tīng ba , nǐ fù qián", en: "Then let's go to that famous restaurant nearby, you pay."}]},
+        {emoji: "🍰", lines: [{cn: "这家超市的蛋糕正在打折，快去！", py: "zhè jiā chāo shì de dàn gāo zhèng zài dǎ zhé , kuài qù", en: "The cakes in this supermarket are on discount, go quickly!"},{cn: "真的吗？那我们多买几个给校长。 ", py: "zhēn de ma ? nà wǒ men duō mǎi jǐ gè gěi xiào zhǎng", en: "Really? Then let's buy a few more for the principal."},{cn: "别忘了再买几瓶他喜欢的饮料。", py: "bié wàng le zài mǎi jǐ píng tā xǐ huan de yǐn liào", en: "Don't forget to buy a few bottles of the drinks he likes."}]},
+        {emoji: "🧗", lines: [{cn: "明天的天气适合去爬山吗？", py: "míng tiān de tiān qì shì hé qù pá shān ma", en: "Is the weather tomorrow suitable for mountain climbing?"},{cn: "电视上说阴天，可能会刮很大的风。", py: "diàn shì shàng shuō yīn tiān , kě néng huì guā hěn dà de fēng", en: "The TV says it's cloudy and might be very windy."},{cn: "那我们还是换个选择，去听音乐会睡觉吧。", py: "nà wǒ men hái shì huàn gè xuǎn zé , qù tīng yīn yuè huì shuì jiào ba", en: "Then let's change our choice and go to a concert to sleep."}]},
+        {emoji: "🧳", lines: [{cn: "你决定好去哪个国家旅游了吗？", py: "nǐ jué dìng hǎo qù něi gè guó jiā lǚ yóu le ma", en: "Have you decided which country to travel to?"},{cn: "还没，我想找一个没人认识我的地方。", py: "hái méi , wǒ xiǎng zhǎo yí gè méi rén rèn shi wǒ de dì fang", en: "Not yet, I want to find a place where no one knows me."},{cn: "北方有很多漂亮的小城市，你可以考虑。", py: "běi fāng yǒu hěn duō piào liang de xiǎo chéng shì , nǐ kě yǐ kǎo lǜ", en: "There are many beautiful small cities in the north, you can consider them."}]},
+        {emoji: "🌤️", lines: [{cn: "今天的阳光真好，我们出去散步吧。", py: "jīn tiān de yáng guāng zhēn hǎo , wǒ men chū qù sàn bù ba", en: "The sunshine is great today, let's go out for a walk."},{cn: "好，我正好要去银行存我的五块钱。", py: "hǎo , wǒ zhèng hǎo yào qù yín háng cún wǒ de wǔ kuài qián", en: "Okay, I happen to be going to the bank to deposit my 5 yuan."},{cn: "顺便再去超市 mǎi 点儿新鲜的水果，如果打折。", py: "shùn biàn zài qù chāo shì mǎi diǎnr xīn xiān de shuǐ guǒ , rú guǒ dǎ zhé", en: "By the way, go to the supermarket and buy some fresh fruit if it's on discount."}]}
+    ];
+
+    let currentIndex = 0, mistakes = [], currentMode = 'study', timer = null, score = 0;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playTone(freq, duration) {
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.frequency.value = freq; osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function generateRuby(text, pinyin) {
+        const chars = text.split(''); const pyWords = pinyin.split(' ');
+        let html = '<div style="display:flex; flex-wrap:wrap; align-items:flex-end;">';
+        let pyIdx = 0;
+        chars.forEach(c => {
+            if(/[\u4e00-\u9fa5]/.test(c)) {
+                html += `<ruby>${c}<rt>${pyWords[pyIdx] || ''}</rt></ruby>`;
+                pyIdx++;
+            } else if(c.trim() !== '') {
+                html += `<span style="font-size:22px; margin:0 2px; font-weight:bold;">${c}</span>`;
+                if(!/[，。？！,?!]/.test(c)) pyIdx++;
+            }
+        });
+        return html + '</div>';
+    }
+
+    function render() {
+        const data = database[currentIndex];
+        document.getElementById('emoji-display').innerText = data.emoji;
+        document.getElementById('progress-text').innerText = currentIndex + 1;
+        document.getElementById('content-area').innerHTML = data.lines.map((l, i) => `
+            <div class="dialogue-box" onclick="speakLine('${l.cn}', ${i})">
+                <span style="font-weight:bold; color:var(--primary);">${i%2===0?'A (男):':'B (女):'}</span>
+                ${generateRuby(l.cn, l.py)}
+                <div style="font-size:15px; color:#666; margin-top:8px;">${l.en}</div>
+            </div>`).join('');
+    }
+
+    function speakLine(text, index) {
+        window.speechSynthesis.cancel();
+        const ut = new SpeechSynthesisUtterance(text); ut.lang = 'zh-CN'; ut.rate = 0.85;
+        const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('zh'));
+        ut.voice = (index % 2 === 0) ? (voices.find(v => v.name.includes('Yunxi')) || voices[0]) : (voices.find(v => v.name.includes('Xiaoxiao')) || voices[1] || voices[0]);
+        window.speechSynthesis.speak(ut);
+    }
+
+    function playFullDialogue() {
+        window.speechSynthesis.cancel(); let d = 0;
+        database[currentIndex].lines.forEach((line, i) => {
+            setTimeout(() => speakLine(line.cn, i), d);
+            d += line.cn.length * 400 + 800;
+        });
+    }
+
+    function setMode(mode) {
+        currentMode = mode; clearInterval(timer);
+        document.getElementById('timer-bar').style.width = '0%';
+        document.getElementById('rush-score-ui').style.display = 'none';
+        document.querySelectorAll('.nav-btns button').forEach(b => b.classList.remove('active-mode'));
+        ['study-ui','list-container','quiz-container'].forEach(id => document.getElementById(id).style.display='none');
+
+        if(mode === 'study') {
+            document.getElementById('btn-study').classList.add('active-mode');
+            document.getElementById('study-ui').style.display = 'flex'; render();
+        } else if(['quiz','rush','mistake'].includes(mode)) {
+            document.getElementById(`btn-${mode}`).classList.add('active-mode');
+            document.getElementById('quiz-container').style.display = 'block';
+            if(mode === 'rush') { score = 0; document.getElementById('rush-score-ui').style.display='block'; startRushTimer(); }
+            startQuiz();
+        } else if(mode === 'list') {
+            document.getElementById('btn-list').classList.add('active-mode');
+            document.getElementById('list-container').style.display = 'block'; renderList();
+        }
+    }
+
+    function startRushTimer() {
+        let t = 300; timer = setInterval(() => {
+            t--; document.getElementById('timer-bar').style.width = (t/3) + '%';
+            if(t <= 0) { clearInterval(timer); playEncouragement("时间到！得分: " + score); setMode('study'); }
+        }, 100);
+    }
+
+    function startQuiz() {
+        let line;
+        if(currentMode === 'mistake') {
+            if(mistakes.length === 0) { playEncouragement("太牛了！错题全清空了！"); setMode('study'); return; }
+            line = mistakes[0];
+        } else {
+            let g = database[Math.floor(Math.random() * database.length)];
+            line = g.lines[Math.floor(Math.random() * g.lines.length)];
+        }
+        const isZh = Math.random() > 0.5;
+        document.getElementById('quiz-prompt').innerText = isZh ? line.cn : line.en;
+        let opts = [line];
+        while(opts.length < 4) {
+            let r = database[Math.floor(Math.random()*database.length)].lines[0];
+            if(!opts.includes(r)) opts.push(r);
+        }
+        opts.sort(() => Math.random() - 0.5);
+        document.getElementById('quiz-options').innerHTML = opts.map(o => `
+            <button class="quiz-option" onclick="checkAnswer('${o.cn}','${line.cn}', this)">${isZh ? o.en : o.cn}</button>`).join('');
+    }
+
+    function checkAnswer(s, a, b) {
+        if(s === a) {
+            playTone(880, 0.1); b.style.background = "#c8e6c9";
+            if(currentMode === 'rush') { score++; document.getElementById('rush-score').innerText = score; }
+            if(currentMode === 'mistake') mistakes.shift(); 
+            updateMistakeCount(); setTimeout(startQuiz, 300);
+        } else {
+            playTone(220, 0.2); b.style.background = "#ffcdd2";
+            let w = database.flatMap(d => d.lines).find(l => l.cn === a);
+            if(w && !mistakes.includes(w)) mistakes.push(w);
+            updateMistakeCount();
+        }
+    }
+
+    function updateMistakeCount() { document.getElementById('mistake-count').innerText = mistakes.length; }
+    function playEncouragement(p = "") {
+        const msgs = ["你太棒了！", "真了不起！", "继续加油！", "你的汉语水平提高真快！", "你是天才吗？"];
+        const ut = new SpeechSynthesisUtterance(p + msgs[Math.floor(Math.random() * msgs.length)]);
+        ut.lang = 'zh-CN'; window.speechSynthesis.speak(ut);
+    }
+
+    function renderList() {
+        document.getElementById('list-content').innerHTML = '<h2>📜 对话全表</h2>' + database.map((item, idx) => `
+            <div style="padding:15px; border-bottom:1px solid #eee; cursor:pointer;" onclick="currentIndex=${idx};setMode('study')">
+                <span style="font-size:24px;">${item.emoji}</span> <b>${item.lines[0].cn}</b>
+            </div>`).join('');
+    }
+
+    function next() { currentIndex = (currentIndex + 1) % database.length; render(); }
+    function prev() { currentIndex = (currentIndex - 1 + database.length) % database.length; render(); }
+    function enterApp() { document.getElementById('cover-page').style.display = 'none'; render(); }
+    window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+</script>
+</body>
+</html>
