@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, landscape=yes">
+    <title>HSK 3 精简版 - XUSFUNCHINESE</title>
+    <style>
+        :root {
+            --primary: #01579b; --accent: #e1f5fe; --gold: #fbc02d;
+            --pinyin: #ff0000; --night-sky: radial-gradient(circle at center, #001f3f 0%, #000510 100%);
+        }
+        body { margin: 0; font-family: "Arial", sans-serif; background: linear-gradient(135deg, #0277bd 0%, #002f6c 100%); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* 金光闪闪的Cover */
+        #cover-page {
+            position: fixed; top:0; left:0; width:100%; height:100%; background:var(--night-sky);
+            z-index:5000; display:flex; flex-direction:column; justify-content:center; align-items:center; cursor:pointer;
+        }
+        .shiny-title {
+            font-size: 10vw; font-weight: 900; text-align: center;
+            background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px rgba(255,215,0,0.5));
+            animation: shine 3s infinite linear; line-height: 1.1;
+        }
+        @keyframes shine { 0% { background-position: 0%; } 100% { background-position: 200%; } }
+
+        header { background: rgba(255,255,255,0.95); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 100; }
+        .nav-btns button { padding: 8px 15px; margin-right: 5px; border-radius: 20px; border: 2px solid var(--primary); cursor: pointer; font-weight: bold; background: white; color: var(--primary); font-size: 13px; }
+        .active-mode { background: var(--primary) !important; color: white !important; }
+        
+        main { flex: 1; display: flex; padding: 20px; gap: 15px; overflow: hidden; position: relative; }
+        #left-panel { flex: 0.7; background: rgba(255,255,255,0.95); border-radius: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 4px solid var(--accent); position: relative; }
+        #right-panel { flex: 1.3; background: rgba(255,255,255,0.95); border-radius: 30px; padding: 25px; overflow-y: auto; border: 4px solid var(--accent); }
+        
+        .dialogue-box { margin-bottom: 20px; padding: 15px; border-radius: 12px; background: #fff; border-left: 6px solid var(--primary); cursor: pointer; transition: 0.2s; }
+        .dialogue-box:hover { background: #f0faff; }
+        
+        ruby { font-size: 26px; font-weight: 600; margin: 0 3px; display: inline-flex; flex-direction: column-reverse; align-items: center; }
+        rt { font-size: 14px; color: var(--pinyin); font-weight: bold; margin-bottom: 4px; }
+        
+        #list-container, #quiz-container { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 200; overflow-y: auto; padding: 40px; box-sizing: border-box; }
+        .quiz-option { width: 100%; padding: 15px; margin: 8px 0; border: 2px solid var(--primary); border-radius: 12px; background: white; cursor: pointer; font-size: 18px; font-weight: bold; }
+        
+        #timer-bar { position: absolute; top: 0; left: 0; height: 8px; background: #ff5252; width: 0%; transition: width 0.1s linear; border-radius: 4px; }
+        .watermark { position: fixed; bottom: 10px; right: 20px; color: rgba(255,255,255,0.4); font-weight: bold; font-style: italic; pointer-events: none; z-index: 1000; }
+    </style>
+</head>
+<body>
+
+<div id="cover-page" onclick="enterApp()">
+    <div class="shiny-title">HSK3<br>Dialogues</div>
+    <p style="color:white; margin-top: 30px; letter-spacing: 2px;">CLICK TO START</p>
+</div>
+
+<div class="watermark">XUSFUNCHINESE</div>
+
+<header>
+    <div class="nav-btns">
+        <button onclick="setMode('study')" id="btn-study" class="active-mode">📖 学习</button>
+        <button onclick="setMode('quiz')" id="btn-quiz">📝 测试</button>
+        <button onclick="setMode('rush')" id="btn-rush" style="border-color: #ff5252; color: #ff5252;">⚡ RUSH</button>
+        <button onclick="setMode('mistake')" id="btn-mistake" style="border-color: #7b1fa2; color: #7b1fa2;">❌ 错题本(<span id="mistake-count">0</span>)</button>
+        <button onclick="setMode('list')" id="btn-list">📜 列表</button>
+    </div>
+    <div id="stat-display" style="font-weight: bold;">进度: <span id="progress-text">1</span>/5</div>
+</header>
+
+<main>
+    <div id="study-ui" style="display: flex; width: 100%; height: 100%; gap: 15px;">
+        <div id="left-panel">
+            <div id="timer-bar"></div>
+            <div id="emoji-display" style="font-size: 100px;">👔</div>
+            <button onclick="playFullDialogue()" style="margin-top:20px; padding:15px 30px; border-radius:30px; background:var(--primary); color:white; border:none; cursor:pointer; font-weight:bold;">🔊 朗读对话</button>
+            <div id="rush-score-ui" style="display:none; margin-top:10px; font-size:24px; color:red; font-weight:bold;">得分: <span id="rush-score">0</span></div>
+            <div style="margin-top:30px; display:flex; gap:10px;">
+                <button onclick="prev()" style="padding:10px 20px; border-radius:10px;">◀</button>
+                <button onclick="next()" style="background:var(--gold); border:none; padding:10px 20px; font-weight:bold; border-radius:10px;">▶</button>
+            </div>
+        </div>
+        <div id="right-panel"><div id="content-area"></div></div>
+    </div>
+    <div id="list-container">
+        <button onclick="setMode('study')" style="float:right; padding:10px; background:red; color:white; border:none; border-radius:5px;">关闭</button>
+        <div id="list-content"></div>
+    </div>
+    <div id="quiz-container">
+        <div id="quiz-content" style="max-width: 600px; margin: 0 auto; text-align: center;">
+            <h2 id="quiz-title">测试模式</h2>
+            <div id="quiz-prompt" style="font-size:24px; margin:20px 0; padding:25px; background:#f0f7ff; border-radius:15px; border:2px solid var(--primary);"></div>
+            <div id="quiz-options"></div>
+        </div>
+    </div>
+</main>
+
+<script>
+    const database = [
+        {emoji: "👔", lines: [{cn: "这件衬衫很漂亮，就是有点儿贵。", py: "zhè jiàn chèn shān hěn piào liang , jiù shì yǒu diǎnr guì", en: "This shirt is beautiful, it's just a bit expensive."},{cn: "虽然贵，但穿上它会显得聪明一点儿。", py: "suī rán guì , dàn chuān shàng tā huì xiǎn de cōng ming yì diǎnr", en: "Although expensive, wearing it will make you look a bit smarter."},{cn: "好吧，我决定买下它送给爷爷。", py: "hǎo ba , wǒ jué dìng mǎi xià tā sòng gěi yé ye", en: "Okay, I decided to buy it for my grandpa."}]},
+        {emoji: "🥢", lines: [{cn: "你习惯用筷子吃西餐吗？真特别。", py: "nǐ xí guàn yòng kuài zi chī xī cān ma ? zhēn tè bié", en: "Are you used to using chopsticks for Western food? So special."},{cn: "因为我找不到了叉子，只能这样了。", py: "yīn wèi wǒ zhǎo bù dào le chā zi , zhǐ néng zhè yàng le", en: "Because I couldn't find a fork, I have to do this."},{cn: "你应该向服务员要求换一套餐具。", py: "yīng gāi xiàng fú wù yuán yāo qiú huàn yí tào cān jù", en: "You should ask the waiter to change a set of tableware."}]},
+        {emoji: "👓", lines: [{cn: "我的眼镜不见了，黑板上的字看不清。", py: "wǒ de yǎn jìng bú jiàn le , hēi bǎn shàng de zì kàn bù qīng", en: "My glasses are gone, I can't see the words on the board."},{cn: "是不是落在刚才那个女生的办公室里了？", py: "shì bú shì luò zài gāng cái nà gè nǚ shēng de bàn gōng shì lǐ le", en: "Did you leave them in that girl's office just now?"},{cn: "别开玩笑，麻烦你帮我找一下眼镜儿。", py: "bié kāi wán xiào , má fan nǐ bāng wǒ zhǎo yí xià yǎn jìng r", en: "Stop joking, please help me look for my glasses."}]},
+        {emoji: "🎒", lines: [{cn: "这个包太重了，你里面放了什么？", py: "zhè gè bāo tài zhòng le , nǐ lǐ miàn fàng le shén me", en: "This bag is too heavy, what did you put inside?"},{cn: "全是历史书和一些厚厚的字典。", py: "quán shì lì shǐ shū hé yì xiē hòu hòu de zì diǎn", en: "It's all history books and some thick dictionaries."},{cn: "你真是个刻苦的学生，值得大家学习。", py: "nǐ zhēn shì gè kè kǔ de xué sheng , zhí dé dà jiā xué xí", en: "You're a hardworking student, worth learning from for everyone."}]},
+        {emoji: "🚌", lines: [{cn: "去机场是坐公交车还是坐地铁？", py: "qù jī chǎng shì zuò gōng jiāo chē hái shì zuò dì tiě", en: "To the airport, take the bus or the subway?"},{cn: "坐地铁吧，公交车上经常有人又哭又叫。", py: "zuò dì tiě ba , gōng jiāo chē shàng jīng cháng yǒu rén yòu kū yòu jiào", en: "Take the subway, people on the bus are often crying and shouting."},{cn: "有道理，那我们现在马上出发。", py: "yǒu dào lǐ , nà wǒ men xiàn zài mǎ shàng chū fā", en: "Makes sense, then let's set off right now."}]}
+    ];
+
+    let currentIndex = 0, mistakes = [], currentMode = 'study', timer = null, score = 0;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playTone(freq, duration) {
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.frequency.value = freq; osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function generateRuby(text, pinyin) {
+        const chars = text.split(''); const pyWords = pinyin.split(' ');
+        let html = '<div style="display:flex; flex-wrap:wrap; align-items:flex-end;">';
+        let pyIdx = 0;
+        chars.forEach(c => {
+            if(/[\u4e00-\u9fa5]/.test(c)) {
+                html += `<ruby>${c}<rt>${pyWords[pyIdx] || ''}</rt></ruby>`;
+                pyIdx++;
+            } else if(c.trim() !== '') {
+                html += `<span style="font-size:22px; margin:0 2px; font-weight:bold;">${c}</span>`;
+                if(!/[，。？！,?!]/.test(c)) pyIdx++;
+            }
+        });
+        return html + '</div>';
+    }
+
+    function render() {
+        const data = database[currentIndex];
+        document.getElementById('emoji-display').innerText = data.emoji;
+        document.getElementById('progress-text').innerText = currentIndex + 1;
+        document.getElementById('content-area').innerHTML = data.lines.map((l, i) => `
+            <div class="dialogue-box" onclick="speakLine('${l.cn}', ${i})">
+                <span style="font-weight:bold; color:var(--primary);">${i%2===0?'A (男):':'B (女):'}</span>
+                ${generateRuby(l.cn, l.py)}
+                <div style="font-size:15px; color:#666; margin-top:8px;">${l.en}</div>
+            </div>`).join('');
+    }
+
+    function speakLine(text, index) {
+        window.speechSynthesis.cancel();
+        const ut = new SpeechSynthesisUtterance(text); ut.lang = 'zh-CN'; ut.rate = 0.85;
+        const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('zh'));
+        ut.voice = (index % 2 === 0) ? (voices.find(v => v.name.includes('Yunxi')) || voices[0]) : (voices.find(v => v.name.includes('Xiaoxiao')) || voices[1] || voices[0]);
+        window.speechSynthesis.speak(ut);
+    }
+
+    function playFullDialogue() {
+        window.speechSynthesis.cancel(); let d = 0;
+        database[currentIndex].lines.forEach((line, i) => {
+            setTimeout(() => speakLine(line.cn, i), d);
+            d += line.cn.length * 400 + 800;
+        });
+    }
+
+    function setMode(mode) {
+        currentMode = mode; clearInterval(timer);
+        document.getElementById('timer-bar').style.width = '0%';
+        document.getElementById('rush-score-ui').style.display = 'none';
+        document.querySelectorAll('.nav-btns button').forEach(b => b.classList.remove('active-mode'));
+        ['study-ui','list-container','quiz-container'].forEach(id => document.getElementById(id).style.display='none');
+
+        if(mode === 'study') {
+            document.getElementById('btn-study').classList.add('active-mode');
+            document.getElementById('study-ui').style.display = 'flex'; render();
+        } else if(['quiz','rush','mistake'].includes(mode)) {
+            document.getElementById(`btn-${mode}`).classList.add('active-mode');
+            document.getElementById('quiz-container').style.display = 'block';
+            if(mode === 'rush') { score = 0; document.getElementById('rush-score-ui').style.display='block'; startRushTimer(); }
+            startQuiz();
+        } else if(mode === 'list') {
+            document.getElementById('btn-list').classList.add('active-mode');
+            document.getElementById('list-container').style.display = 'block'; renderList();
+        }
+    }
+
+    function startRushTimer() {
+        let t = 300; timer = setInterval(() => {
+            t--; document.getElementById('timer-bar').style.width = (t/3) + '%';
+            if(t <= 0) { clearInterval(timer); playEncouragement("时间到！得分: " + score); setMode('study'); }
+        }, 100);
+    }
+
+    function startQuiz() {
+        let line;
+        if(currentMode === 'mistake') {
+            if(mistakes.length === 0) { playEncouragement("太牛了！错题全清空了！"); setMode('study'); return; }
+            line = mistakes[0];
+        } else {
+            let g = database[Math.floor(Math.random() * database.length)];
+            line = g.lines[Math.floor(Math.random() * g.lines.length)];
+        }
+        const isZh = Math.random() > 0.5;
+        document.getElementById('quiz-prompt').innerText = isZh ? line.cn : line.en;
+        let opts = [line];
+        while(opts.length < 4) {
+            let r = database[Math.floor(Math.random()*database.length)].lines[0];
+            if(!opts.includes(r)) opts.push(r);
+        }
+        opts.sort(() => Math.random() - 0.5);
+        document.getElementById('quiz-options').innerHTML = opts.map(o => `
+            <button class="quiz-option" onclick="checkAnswer('${o.cn}','${line.cn}', this)">${isZh ? o.en : o.cn}</button>`).join('');
+    }
+
+    function checkAnswer(s, a, b) {
+        if(s === a) {
+            playTone(880, 0.1); b.style.background = "#c8e6c9";
+            if(currentMode === 'rush') { score++; document.getElementById('rush-score').innerText = score; }
+            if(currentMode === 'mistake') mistakes.shift(); 
+            updateMistakeCount(); setTimeout(startQuiz, 300);
+        } else {
+            playTone(220, 0.2); b.style.background = "#ffcdd2";
+            let w = database.flatMap(d => d.lines).find(l => l.cn === a);
+            if(w && !mistakes.includes(w)) mistakes.push(w);
+            updateMistakeCount();
+        }
+    }
+
+    function updateMistakeCount() { document.getElementById('mistake-count').innerText = mistakes.length; }
+    function playEncouragement(p = "") {
+        const msgs = ["你太棒了！", "真了不起！", "继续加油！", "你的汉语水平提高真快！", "你是天才吗？"];
+        const ut = new SpeechSynthesisUtterance(p + msgs[Math.floor(Math.random() * msgs.length)]);
+        ut.lang = 'zh-CN'; window.speechSynthesis.speak(ut);
+    }
+
+    function renderList() {
+        document.getElementById('list-content').innerHTML = '<h2>📜 对话全表</h2>' + database.map((item, idx) => `
+            <div style="padding:15px; border-bottom:1px solid #eee; cursor:pointer;" onclick="currentIndex=${idx};setMode('study')">
+                <span style="font-size:24px;">${item.emoji}</span> <b>${item.lines[0].cn}</b>
+            </div>`).join('');
+    }
+
+    function next() { currentIndex = (currentIndex + 1) % database.length; render(); }
+    function prev() { currentIndex = (currentIndex - 1 + database.length) % database.length; render(); }
+    function enterApp() { document.getElementById('cover-page').style.display = 'none'; render(); }
+    window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+</script>
+</body>
+</html>
