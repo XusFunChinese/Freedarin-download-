@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XUSCHINESE Radical Master 10</title>
+    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --pinyin: #d32f2f;
+            --kaiti: "Kaiti", "楷体", "STKaiti", serif;
+            --accent: #1a73e8;
+        }
+
+        body { margin: 0; background: var(--bg); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
+
+        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50) rotate(-30deg); font-size: 80px; color: rgba(0,0,0,0.03); z-index: -1; pointer-events: none; white-space: nowrap; }
+
+        /* Cover Page */
+        #cover { position: fixed; inset: 0; background: linear-gradient(135deg, #1a73e8, #673ab7); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 2000; text-align: center; }
+        
+        /* Navigation */
+        nav { display: none; background: white; width: 100%; padding: 10px; justify-content: center; gap: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+
+        .mode-section { display: none; width: 100%; flex-direction: column; align-items: center; padding: 20px; box-sizing: border-box; }
+
+        /* Card Styles */
+        .card-box { width: 340px; height: 500px; perspective: 1000px; margin-top: 5px; }
+        .card-inner { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.5s; cursor: pointer; }
+        .card-inner.flipped { transform: rotateY(180deg); }
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: white; padding: 20px; display: flex; flex-direction: column; align-items: center; box-sizing: border-box; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #eee; }
+        .card-back { transform: rotateY(180deg); background: #fafafa; justify-content: flex-start; }
+
+        .writer-container { width: 150px; height: 150px; margin: 10px 0; opacity: 0; transition: opacity 0.3s; }
+        .pinyin-label { color: var(--pinyin); font-weight: bold; font-size: 18px; }
+        .radical-name { font-family: var(--kaiti); font-size: 30px; margin-top: 5px; }
+
+        .origin-row { display: flex; align-items: center; gap: 15px; margin: 5px 0; }
+        .big-char { font-family: var(--kaiti); font-size: 50px; line-height: 1; }
+        .origin-desc { font-size: 13px; color: #666; text-align: center; margin-bottom: 8px; line-height: 1.3; }
+
+        .example-area { width: 100%; border-top: 1px solid #eee; padding-top: 8px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+        .ex-pinyin { color: var(--pinyin); font-weight: bold; font-size: 17px; }
+        .ex-char { font-family: var(--kaiti); font-size: 45px; margin: 2px 0; }
+        .ex-eng { color: #888; font-size: 14px; }
+
+        /* Common Buttons */
+        .btn { padding: 12px 24px; border-radius: 25px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; margin: 5px; font-size: 0.95rem; }
+        .btn-main { background: white; color: var(--accent); }
+        .audio-btn { background: #f1f3f4; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 5px; font-size: 16px; }
+
+        #timer-wrap { width: 100%; max-width: 350px; height: 6px; background: #ddd; border-radius: 3px; margin-bottom: 15px; }
+        #timer-run { width: 100%; height: 100%; background: #f44336; transition: 0.1s linear; }
+
+        .quiz-option { width: 100%; max-width: 350px; padding: 14px; background: white; border: 2px solid #eee; border-radius: 12px; margin: 5px 0; cursor: pointer; font-size: 1rem; text-align: left; }
+        .quiz-option:hover { border-color: var(--accent); background: #f8fbff; }
+        
+        .list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; width: 100%; max-width: 800px; }
+        .list-card { background: white; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer; border: 1px solid #eee; }
+
+        /* 金光闪闪动态效果 */
+        .completion-msg { 
+            display: none;
+            margin-top: 25px; 
+            text-align: center; 
+            font-size: 1.6rem; 
+            font-weight: 900;
+            background: linear-gradient(90deg, #bf953f, #fcf6ba, #b38728, #fcf6ba, #bf953f);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: shine 2s linear infinite, fadeIn 0.8s ease-out;
+            text-shadow: 0px 3px 6px rgba(0,0,0,0.1);
+            padding: 10px;
+            width: 90%;
+            line-height: 1.2;
+        }
+
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="watermark">XUSCHINESE</div>
+
+<div id="cover">
+    <h1 style="font-size: 3.5rem; margin: 0;">Radical Master 🏮</h1>
+    <p style="font-size: 1.2rem; margin: 10px 0 30px; opacity: 0.9;">10 Essential Chinese Radicals</p>
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
+        <button class="btn btn-main" onclick="toMode('card')">🃏 Flashcards</button>
+        <button class="btn btn-main" onclick="toMode('rush')">⚡ Rush (30s)</button>
+        <button class="btn btn-main" onclick="toMode('quiz')">✍️ Quiz Mode</button>
+        <button class="btn btn-main" onclick="toMode('list')">📋 List View</button>
+    </div>
+</div>
+
+<nav id="navbar">
+    <button class="btn" onclick="location.reload()" style="background:#f5f5f5">🏠 Home</button>
+    <button class="btn" onclick="toMode('card')">🃏 Card</button>
+    <button class="btn" onclick="toMode('rush')">⚡ Rush</button>
+    <button class="btn" onclick="toMode('quiz')">✍️ Quiz</button>
+    <button class="btn" onclick="toMode('list')">📋 List</button>
+</nav>
+
+<div id="card-mode" class="mode-section">
+    <div class="card-box">
+        <div class="card-inner" id="card-inner" onclick="this.classList.toggle('flipped')">
+            <div class="card-face" id="cf"></div>
+            <div class="card-face card-back" id="cb"></div>
+        </div>
+    </div>
+    <div id="card-controls" style="margin-top: 20px;">
+        <button class="btn" onclick="changeIdx(-1, event)" style="background:#fff; border:1px solid #ddd;">PREV</button>
+        <button class="btn" onclick="changeIdx(1, event)" style="background:var(--accent); color:white;">NEXT</button>
+    </div>
+    <div id="card-finish" class="completion-msg">Unlock the full version to master all 100 radicals</div>
+</div>
+
+<div id="rush-mode" class="mode-section">
+    <div id="timer-wrap"><div id="timer-run"></div></div>
+    <h2 id="rush-q"></h2>
+    <div id="rush-ops" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
+    <p id="rush-stat" style="font-weight:bold; margin-top:10px;"></p>
+    <div id="rush-finish" class="completion-msg">Unlock the full version to master all 100 radicals</div>
+</div>
+
+<div id="quiz-mode" class="mode-section">
+    <div id="quiz-progress" style="margin-bottom:10px; color:#666;"></div>
+    <h2 id="quiz-q" style="text-align:center; margin-top:0;"></h2>
+    <div id="quiz-ops" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
+    <div id="quiz-finish" class="completion-msg">Unlock the full version to master all 100 radicals</div>
+</div>
+
+<div id="list-mode" class="mode-section">
+    <div class="list-grid" id="list-grid"></div>
+    <div id="list-finish" class="completion-msg">Unlock the full version to master all 100 radicals</div>
+</div>
+
+<script>
+const radicals = [
+    {r:"氵", name:"三点水", np:"sāndiǎnshuǐ", p:"shuǐ", orig:"水", desc:"Flowing water ripples.", m:"Water", e:"💧", ex:"海", exp:"hǎi", exen:"Ocean"},
+    {r:"亻", name:"单人旁", np:"dānrénpáng", p:"rén", orig:"人", desc:"Profile of a standing person.", m:"Person", e:"👤", ex:"他", exp:"tā", exen:"He / Him"},
+    {r:"扌", name:"提手旁", np:"tíshǒupáng", p:"shǒu", orig:"手", desc:"Hand reaching out to grab.", m:"Hand", e:"✋", ex:"打", exp:"dǎ", exen:"Hit / Play"},
+    {r:"口", name:"口字旁", np:"kǒuzìpáng", p:"kǒu", orig:"口", desc:"An open human mouth.", m:"Mouth", e:"👄", ex:"吃", exp:"chī", exen:"Eat"},
+    {r:"忄", name:"竖心旁", np:"shùxīnpáng", p:"xīn", orig:"心", desc:"Heart shown vertically.", m:"Heart", e:"❤️", ex:"快", exp:"kuài", exen:"Fast / Happy"},
+    {r:"纟", name:"绞丝旁", np:"jiǎosīpáng", p:"sī", orig:"糸", desc:"Twisted silk threads.", m:"Silk", e:"🧶", ex:"红", exp:"hóng", exen:"Red"},
+    {r:"讠", name:"言字旁", np:"yánzìpáng", p:"yán", orig:"言", desc:"Speech from a mouth.", m:"Speech", e:"💬", ex:"说", exp:"shuō", exen:"Speak"},
+    {r:"火", name:"火字旁", np:"huǒzìpáng", p:"huǒ", orig:"火", desc:"Rising flames.", m:"Fire", e:"🔥", ex:"灯", exp:"dēng", exen:"Lamp"},
+    {r:"木", name:"木字旁", np:"mùzìpáng", p:"mù", orig:"木", desc:"Tree with branches/roots.", m:"Wood", e:"🌳", ex:"树", exp:"shù", exen:"Tree"},
+    {r:"艹", name:"草字头", np:"cǎozìtóu", p:"cǎo", orig:"艸", desc:"Pairs of grass shoots.", m:"Grass", e:"🌱", ex:"花", exp:"huā", exen:"Flower"}
+];
+
+let cur = 0, writer = null, rushInt = null, rushLeft = 30, rushScore = 0, quizCount = 0;
+let cardViewed = new Set();
+// 全局记录：语音是否已播放过
+let hasPraised = false;
+
+function toMode(m) {
+    document.getElementById('cover').style.display = 'none';
+    document.getElementById('navbar').style.display = 'flex';
+    document.querySelectorAll('.mode-section').forEach(s => s.style.display = 'none');
+    document.querySelectorAll('.completion-msg').forEach(msg => msg.style.display = 'none');
+    document.getElementById(m + '-mode').style.display = 'flex';
+    clearInterval(rushInt);
+    
+    if(m === 'card') { 
+        cur = 0; 
+        document.getElementById('card-controls').style.display = 'block';
+        renderCard(); 
+    }
+    if(m === 'list') { renderList(); triggerFinish('list-finish'); }
+    if(m === 'quiz') { quizCount = 0; nextQuiz(); }
+    if(m === 'rush') startRush();
+}
+
+function renderCard() {
+    const item = radicals[cur];
+    cardViewed.add(cur);
+    document.getElementById('card-inner').classList.remove('flipped');
+    document.getElementById('cf').innerHTML = `<div id="writer-div" class="writer-container"></div><div class="pinyin-label">${item.np}</div><div class="radical-name">${item.name}</div><button class="audio-btn" onclick="say('${item.name}', event)">🔊</button>`;
+    document.getElementById('cb').innerHTML = `<div class="pinyin-label" style="font-size:20px">${item.p}</div><div class="origin-row"><div class="origin-item"><span>Origin</span><div class="big-char">${item.orig}</div></div><div style="font-size:18px; color:#ccc">→</div><div class="origin-item"><span>Radical</span><div class="big-char" style="color:var(--accent)">${item.r}</div></div></div><button class="audio-btn" style="margin-top:-5px; margin-bottom:5px" onclick="say('${item.name}', event)">🔊</button><div class="origin-desc">${item.desc}</div><div class="example-area"><div class="ex-pinyin">${item.exp}</div><div class="ex-char">${item.ex}</div><div class="ex-eng">${item.exen}</div><button class="audio-btn" onclick="say('${item.ex}', event)">🔊</button></div>`;
+    
+    if(writer) writer = null;
+    const div = document.getElementById('writer-div');
+    div.style.opacity = '0';
+    setTimeout(() => {
+        div.innerHTML = '';
+        writer = HanziWriter.create('writer-div', item.r, { width: 150, height: 150, padding: 0, strokeColor: '#1a73e8' });
+        div.style.opacity = '1';
+        writer.animateCharacter();
+    }, 50);
+
+    // 当 10 张词卡都看过时显示提示
+    if(cardViewed.size === radicals.length) triggerFinish('card-finish');
+}
+
+function changeIdx(d, e) { e.stopPropagation(); cur = (cur + d + radicals.length) % radicals.length; renderCard(); }
+
+function nextQuiz() {
+    if(quizCount >= 5) { 
+        triggerFinish('quiz-finish');
+        document.getElementById('quiz-q').innerText = '';
+        document.getElementById('quiz-ops').innerHTML = '';
+        return; 
+    }
+    quizCount++;
+    document.getElementById('quiz-progress').innerText = `Question ${quizCount} / 5`;
+    const isModeA = Math.random() > 0.5;
+    const correct = radicals[Math.floor(Math.random()*radicals.length)];
+    const options = generateOptions(correct);
+    const q = document.getElementById('quiz-q');
+    const box = document.getElementById('quiz-ops');
+    box.innerHTML = '';
+    q.innerText = isModeA ? `Meaning of radical: ${correct.r}?` : `The radical in "${correct.ex}" means:`;
+    options.forEach(o => {
+        const b = document.createElement('button');
+        b.className = 'quiz-option';
+        b.innerText = `${o.e} (${o.m})`;
+        b.onclick = () => { if(o === correct) { playSfx(true); nextQuiz(); } else { playSfx(false); } };
+        box.appendChild(b);
+    });
+}
+
+function startRush() {
+    rushLeft = 30; rushScore = 0;
+    updateRushUI();
+    document.getElementById('rush-q').style.display = 'block';
+    document.getElementById('rush-ops').style.display = 'flex';
+    rushInt = setInterval(() => {
+        rushLeft -= 0.1; updateRushUI();
+        if(rushLeft <= 0) { 
+            clearInterval(rushInt); 
+            triggerFinish('rush-finish');
+            document.getElementById('rush-q').style.display = 'none';
+            document.getElementById('rush-ops').style.display = 'none';
+        }
+    }, 100);
+    nextRush();
+}
+
+function updateRushUI() {
+    document.getElementById('timer-run').style.width = (rushLeft/30*100) + '%';
+    document.getElementById('rush-stat').innerText = `Score: ${rushScore}`;
+}
+
+function nextRush() {
+    const correct = radicals[Math.floor(Math.random()*radicals.length)];
+    const options = generateOptions(correct);
+    document.getElementById('rush-q').innerText = `Meaning of ${correct.r}?`;
+    const box = document.getElementById('rush-ops');
+    box.innerHTML = '';
+    options.forEach(o => {
+        const b = document.createElement('button');
+        b.className = 'quiz-option';
+        b.innerText = o.m;
+        b.onclick = () => { if(o === correct) { rushScore++; playSfx(true); nextRush(); } else { rushLeft -= 1.5; playSfx(false); } };
+        box.appendChild(b);
+    });
+}
+
+function generateOptions(correct) {
+    let pool = [correct];
+    while(pool.length < 4) {
+        let r = radicals[Math.floor(Math.random()*radicals.length)];
+        if(!pool.find(x => x.m === r.m)) pool.push(r);
+    }
+    return pool.sort(() => Math.random() - 0.5);
+}
+
+function renderList() {
+    const g = document.getElementById('list-grid'); g.innerHTML = '';
+    radicals.forEach((item, i) => {
+        const d = document.createElement('div');
+        d.className = 'list-card';
+        d.innerHTML = `<div class="pinyin-label" style="font-size:13px">${item.p}</div><div style="font-family:var(--kaiti); font-size:26px">${item.r}</div><div style="font-size:11px">${item.name}</div>`;
+        d.onclick = () => { cur = i; toMode('card'); };
+        g.appendChild(d);
+    });
+}
+
+function triggerFinish(id) {
+    const el = document.getElementById(id);
+    if(el) {
+        el.style.display = 'block';
+        // 关键逻辑：语音仅在全局范围内播放一次
+        if (!hasPraised) {
+            praise();
+            hasPraised = true;
+        }
+    }
+}
+
+function playSfx(correct) {
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = context.createOscillator();
+    const gain = context.createGain();
+    osc.connect(gain); gain.connect(context.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(correct ? 880 : 220, context.currentTime);
+    gain.gain.setValueAtTime(0.1, context.currentTime);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.00001, context.currentTime + 0.1);
+    osc.stop(context.currentTime + 0.1);
+}
+
+function say(t, e) { if(e) e.stopPropagation(); const u = new SpeechSynthesisUtterance(t); u.lang = 'zh-CN'; window.speechSynthesis.speak(u); }
+
+function praise() {
+    const u = new SpeechSynthesisUtterance("你做得太棒了！Unlock the full version to master all 100 radicals.");
+    u.lang = 'zh-CN';
+    window.speechSynthesis.speak(u);
+}
+</script>
+</body>
+</html>
