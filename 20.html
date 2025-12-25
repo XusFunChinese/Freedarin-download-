@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape">
+    <title>XUSFUNCHINESE - Top 20 Most Common Preview 🏮</title>
+    <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+    <style>
+        :root { 
+            --pinyin-red: #d63031; 
+            --paper: rgba(255, 255, 255, 0.95); 
+            --gold: #fbc02d; 
+            --accent: #218c74; 
+            --primary: #01579b;
+            --night-sky: radial-gradient(circle at center, #001f3f 0%, #000510 100%);
+            --gray: #ccc;
+        }
+        body { 
+            margin: 0; font-family: "Arial Black", sans-serif; 
+            background: linear-gradient(135deg, #0277bd 0%, #002f6c 100%); 
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative;
+        }
+
+        /* Cover */
+        #cover-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--night-sky); z-index: 5000; display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.5s; cursor: pointer;
+        }
+        .shiny-title {
+            font-size: 8vw; font-weight: 900; text-align: center;
+            background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px rgba(255,215,0,0.5));
+            animation: shine 3s infinite linear;
+        }
+        @keyframes shine { 0% { background-position: 0%; } 100% { background-position: 200%; } }
+
+        /* Header */
+        header { background: var(--paper); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 100; }
+        .nav-btns button { padding: 8px 15px; margin-right: 5px; border-radius: 20px; border: 2px solid var(--primary); cursor: pointer; font-weight: bold; background: white; color: var(--primary); }
+        .active-btn { background: var(--primary) !important; color: white !important; }
+
+        main { flex: 1; display: flex; padding: 20px; gap: 20px; overflow: hidden; }
+        #left-panel { 
+            flex: 1; background: var(--paper); border-radius: 30px; display: flex; flex-direction: column; 
+            align-items: center; justify-content: flex-start; position: relative; border: 5px solid var(--gold);
+            padding: 15px 20px 20px 20px; box-sizing: border-box;
+        }
+        #right-panel { flex: 1; background: var(--paper); border-radius: 30px; padding: 20px; overflow-y: auto; border: 5px solid var(--gold); }
+
+        /* Writing area */
+        #writer-container { 
+            display: flex; flex-direction: row; justify-content: center; align-items: center;
+            gap: 15px; padding: 10px 0; width: 100%; overflow-x: auto; overflow-y: hidden;
+            scrollbar-width: none;
+        }
+        #writer-container::-webkit-scrollbar { display: none; }
+        .char-writer { 
+            flex: 0 0 240px; width: 240px; height: 240px; background: white; border: 2px solid #ccc; 
+            touch-action: none; position: relative; cursor: pointer;
+        }
+        .char-writer.inactive { opacity: 0.4; filter: grayscale(80%); }
+        .char-writer.active { border: 4px solid var(--gold); }
+        
+        .pinyin { 
+            font-size: 32px; color: var(--pinyin-red); font-weight: bold; margin: 0 0 10px 0; 
+            text-align: center; max-width: 95%; word-wrap: break-word;
+        }
+        .meaning { 
+            font-size: 20px; color: #555; margin: 0 0 15px 0; text-align: center; 
+            max-width: 95%; word-wrap: break-word;
+        }
+
+        .list-card { background: white; margin-bottom: 10px; padding: 15px; border-radius: 15px; display: flex; align-items: center; cursor: pointer; border-left: 8px solid var(--primary); transition: 0.2s; }
+        .list-card:hover { transform: translateX(10px); background: var(--accent); color: white; }
+        .list-char { font-size: 30px; min-width: 80px; text-align: center; }
+        
+        #hint-area { font-size: 18px; color: var(--primary); margin: 10px 0; font-weight: bold; height: 25px; text-align: center; }
+        .watermark { position: fixed; bottom: 10px; right: 20px; color: rgba(255,255,255,0.3); font-style: italic; pointer-events: none; }
+
+        .mode-desc { margin-top: 10px; font-size: 16px; color: #333; text-align: center; max-width: 85%; }
+
+        .button-area {
+            margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+            width: 100%; box-sizing: border-box;
+        }
+
+        #pinyin-search { width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 10px; border: 2px solid var(--primary); font-size: 16px; }
+    </style>
+</head>
+<body>
+
+<div id="cover-page" onclick="enterApp()">
+    <div class="shiny-title">Top 20<br>Most Common Preview</div>
+    <p style="color:white; margin-top:20px; letter-spacing:3px;">🏮 CLICK TO START 🏮</p>
+</div>
+
+<div class="watermark">XUSFUNCHINESE</div>
+
+<header>
+    <div class="nav-btns">
+        <button id="btn-learn" onclick="switchMode('learn')" class="active-btn">📖 Learn</button>
+        <button id="btn-test" onclick="switchMode('test')">📝 Practice</button>
+        <button id="btn-quiz" onclick="switchMode('quiz')">❓ Quiz</button>
+        <button id="btn-list" onclick="switchMode('list')">📜 List</button>
+        <button id="btn-wrong" onclick="switchMode('wrong')">❌ Mistakes</button>
+    </div>
+    <div style="font-weight:bold; color:var(--primary)">Top 20 Most Common Writing - <span id="progress">1</span>/20</div>
+</header>
+
+<main>
+    <div id="left-panel">
+        <div id="pinyin-display" class="pinyin"></div>
+        <div id="writer-container"></div>
+        <div id="meaning-display" class="meaning"></div>
+        <div id="hint-area"></div>
+        <div class="mode-desc" id="mode-description"></div>
+        <div class="button-area">
+            <button onclick="prevItem()" style="padding:10px 20px; border-radius:10px;">Previous</button>
+            <button onclick="showHint()" id="hint-btn" style="padding:10px 20px; border-radius:10px; background:var(--gold); border:none; font-weight:bold;">Show Hint</button>
+            <button onclick="nextItem()" style="padding:10px 20px; border-radius:10px;">Next</button>
+        </div>
+    </div>
+
+    <div id="right-panel">
+        <div id="list-view" style="display:none;"></div>
+        <div id="wrong-view" style="display:none;"></div>
+        <div id="info-view" style="display:block;">
+            <h3 id="info-title">Mode Guide</h3>
+            <p id="info-text"></p>
+            <div id="stats" style="margin-top:30px; padding:20px; background:var(--accent); color:white; border-radius:20px;">
+                Mastery Progress: <span id="stat-done">0</span> / 20
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+const vocabulary = [
+    {c:"的", p:"de", m:"possessive particle / of"},
+    {c:"一", p:"yī", m:"one"},
+    {c:"是", p:"shì", m:"is / are / am / to be"},
+    {c:"不", p:"bù", m:"not / no"},
+    {c:"了", p:"le", m:"completed action particle"},
+    {c:"在", p:"zài", m:"at / in / on / exist"},
+    {c:"人", p:"rén", m:"person / people"},
+    {c:"有", p:"yǒu", m:"have / there is"},
+    {c:"我", p:"wǒ", m:"I / me"},
+    {c:"他", p:"tā", m:"he / him"},
+    {c:"这", p:"zhè", m:"this"},
+    {c:"个", p:"gè", m:"general measure word"},
+    {c:"们", p:"men", m:"plural marker for pronouns"},
+    {c:"中", p:"zhōng", m:"middle / in / China"},
+    {c:"来", p:"lái", m:"come"},
+    {c:"上", p:"shàng", m:"on / above / up"},
+    {c:"大", p:"dà", m:"big / great / large"},
+    {c:"为", p:"wèi", m:"for / because / to act as"},
+    {c:"和", p:"hé", m:"and / with"},
+    {c:"国", p:"guó", m:"country / nation"}
+];
+
+let currentIndex = 0;
+let currentMode = 'learn';
+let writers = [];
+let divs = [];
+let wrongAnswers = [];
+let hintShown = false;
+
+const encouragements = ["太棒了！🌟", "非常好！👏", "写得真棒！🔥", "继续加油！💪", "完美！✨", "了不起！👍", "真聪明！🧠", "优秀！🏆", "棒极了！🌈", "太厉害了！⚡"];
+
+const modeDescriptions = {
+    learn: "Watch stroke order and listen to pronunciation. 📖",
+    test: "Write from memory with outline. Correct strokes move forward. 📝",
+    quiz: "Pure challenge: No outline at first. Click 'Show Hint' if stuck. ❓"
+};
+
+async function getStrokes(char) {
+    try {
+        const data = await HanziWriter.loadCharacterData(char);
+        return data.strokes.length;
+    } catch (e) {
+        return 999;
+    }
+}
+
+async function getWordStrokes(c) {
+    let total = 0;
+    for (const ch of c) {
+        total += await getStrokes(ch);
+    }
+    return total;
+}
+
+async function sortVocabulary() {
+    const withStrokes = await Promise.all(vocabulary.map(async (v) => ({
+        ...v,
+        strokes: await getWordStrokes(v.c)
+    })));
+    withStrokes.sort((a, b) => a.strokes - b.strokes);
+    vocabulary.splice(0, vocabulary.length, ...withStrokes.map(({strokes, ...v}) => v));
+}
+
+function initWriters(chars, mode) {
+    writers = [];
+    divs = [];
+    document.getElementById('writer-container').innerHTML = '';
+    hintShown = false;
+
+    const commonOptions = {
+        width: 240, height: 240, padding: 5,
+        strokeColor: '#01579b', drawingColor: '#d63031',
+        drawingWidth: (mode === 'test' || mode === 'quiz') ? 28 : 18,
+        outlineColor: '#ddd', radicalColor: '#1666c4'
+    };
+
+    const charArray = chars.split('');
+
+    charArray.forEach((char, index) => {
+        const div = document.createElement('div');
+        div.className = 'char-writer';
+        div.dataset.index = index;
+        div.onclick = () => replaySingleChar(index);
+        document.getElementById('writer-container').appendChild(div);
+        divs.push(div);
+
+        const options = {...commonOptions};
+        if (mode === 'learn') { options.showCharacter = true; options.showOutline = true; div.classList.add('inactive'); }
+        else if (mode === 'test') { options.showCharacter = false; options.showOutline = true; }
+        else if (mode === 'quiz') { options.showCharacter = false; options.showOutline = false; }
+
+        const writer = HanziWriter.create(div, char, options);
+        writers.push(writer);
+
+        if (mode === 'learn') {
+            if (index === 0) setTimeout(() => startSequentialAnimation(0), 600);
+        } else {
+            let completed = 0;
+            writer.quiz({
+                onComplete: () => {
+                    completed++;
+                    if (completed === writers.length) {
+                        const msg = encouragements[Math.floor(Math.random() * encouragements.length)];
+                        document.getElementById('hint-area').innerText = msg;
+                        speak(msg.replace(/[^\u4e00-\u9fa5]/g, ""));
+                        setTimeout(nextItem, 2000);
+                    }
+                },
+                onMistake: () => {
+                    const currentObj = vocabulary[currentIndex];
+                    if (!wrongAnswers.includes(currentObj)) wrongAnswers.push(currentObj);
+                    document.getElementById('hint-area').innerText = "Try again~ ✍️";
+                    updateStats();
+                }
+            });
+        }
+    });
+    if (mode === 'learn') speak(vocabulary[currentIndex].c);
+}
+
+function startSequentialAnimation(index) {
+    if (index >= writers.length) { divs.forEach(d => d.classList.remove('inactive', 'active')); return; }
+    divs[index].classList.remove('inactive');
+    divs[index].classList.add('active');
+    writers[index].animateCharacter(() => {
+        divs[index].classList.remove('active');
+        startSequentialAnimation(index + 1);
+    });
+}
+
+function replaySingleChar(clickedIndex) {
+    if (currentMode !== 'learn') return;
+    divs.forEach((d, i) => {
+        if (i === clickedIndex) { d.classList.remove('inactive'); d.classList.add('active'); }
+        else { d.classList.add('inactive'); d.classList.remove('active'); }
+    });
+    writers[clickedIndex].animateCharacter(() => {
+        divs.forEach((d, i) => { d.classList.remove('active'); if (i > clickedIndex) d.classList.add('inactive'); });
+    });
+}
+
+function render() {
+    const item = vocabulary[currentIndex];
+    document.getElementById('progress').innerText = currentIndex + 1;
+    document.getElementById('pinyin-display').innerText = item.p;
+    document.getElementById('meaning-display').innerText = item.m;
+    document.getElementById('hint-area').innerText = "";
+    document.getElementById('mode-description').innerText = modeDescriptions[currentMode];
+    initWriters(item.c, currentMode);
+}
+
+function switchMode(m, specificIndex = null) {
+    currentMode = m;
+    if (specificIndex !== null) currentIndex = specificIndex;
+    document.querySelectorAll('.nav-btns button').forEach(b => b.classList.remove('active-btn'));
+    document.getElementById('btn-' + m).classList.add('active-btn');
+    document.getElementById('list-view').style.display = (m === 'list') ? 'block' : 'none';
+    document.getElementById('wrong-view').style.display = (m === 'wrong') ? 'block' : 'none';
+    document.getElementById('info-view').style.display = (['learn', 'test', 'quiz'].includes(m)) ? 'block' : 'none';
+    if (m === 'list') renderList();
+    if (m === 'wrong') renderWrong();
+    if (['learn', 'test', 'quiz'].includes(m)) render();
+}
+
+function showHint() {
+    if (currentMode === 'quiz' && writers.length > 0 && !hintShown) {
+        writers.forEach(w => w.showOutline());
+        hintShown = true;
+        document.getElementById('hint-area').innerText = "Outline shown 💡";
+    } else if (currentMode === 'learn') startSequentialAnimation(0);
+}
+
+function nextItem() { if (currentIndex < vocabulary.length - 1) { currentIndex++; render(); } else { alert("Top 20 Preview Complete! 🎉"); } }
+function prevItem() { if (currentIndex > 0) { currentIndex--; render(); } }
+
+function renderList() {
+    const container = document.getElementById('list-view');
+    container.innerHTML = `<input id="pinyin-search" type="text" placeholder="Search by Pinyin or Hanzi..." >
+        <h3>Top 20 Most Common Preview 🏮</h3>` + vocabulary.map((v, i) => `
+        <div class="list-card" onclick="switchMode('learn', ${i})">
+            <span class="list-char">${v.c}</span>
+            <div style="margin-left:20px;">
+                <span style="color:var(--pinyin-red); font-weight:bold; font-size:1.2em;">${v.p}</span><br>
+                <small>${v.m}</small>
+            </div>
+        </div>`).join('');
+    document.getElementById('pinyin-search').addEventListener('input', (e) => {
+        const value = e.target.value.toLowerCase().trim();
+        const cards = container.querySelectorAll('.list-card');
+        cards.forEach(c => {
+            const pinyinElem = c.querySelector('span[style*="color"]');
+            const pinyin = pinyinElem ? pinyinElem.innerText.toLowerCase() : '';
+            const hanzi = c.querySelector('.list-char').innerText;
+            c.style.display = (pinyin.includes(value) || hanzi.includes(value)) ? 'flex' : 'none';
+        });
+    });
+}
+
+function renderWrong() {
+    const container = document.getElementById('wrong-view');
+    if (!wrongAnswers.length) { container.innerHTML = "<p style='text-align:center;'>No mistakes! Excellent! 🏆</p>"; return; }
+    container.innerHTML = "<h3>Review Mistakes ❌</h3>" + wrongAnswers.map(v => {
+        const idx = vocabulary.findIndex(it => it.c === v.c);
+        return `<div class="list-card" onclick="switchMode('quiz', ${idx})">
+            <span class="list-char"><b>${v.c}</b></span>
+            <div style="margin-left:15px;">
+                <span style="color:var(--pinyin-red); font-weight:bold;">${v.p}</span><br>
+                <small>${v.m}</small>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function speak(t) { 
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(t); 
+        utter.lang = 'zh-CN'; utter.rate = 0.8; 
+        window.speechSynthesis.speak(utter); 
+    }
+}
+
+function updateStats() { 
+    document.getElementById('stat-done').innerText = vocabulary.length - wrongAnswers.length; 
+}
+
+async function enterApp() { 
+    await sortVocabulary();
+    document.getElementById('cover-page').style.opacity = '0'; 
+    setTimeout(() => { document.getElementById('cover-page').style.display = 'none'; switchMode('learn'); }, 500); 
+}
+
+window.addEventListener('resize', () => { if (writers.length > 0) render(); });
+</script>
+</body>
+</html>
