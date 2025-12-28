@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Uses of “了” (le) - 精简进阶版</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --success: #27ae60;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .slide-container {
+            width: 90%;
+            max-width: 850px;
+            height: 520px;
+            background: var(--card-bg);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+            padding: 45px;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        .slide { display: none; }
+        .slide.active { display: block; }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 34px;
+            margin-top: 0;
+            border-left: 8px solid var(--accent-color);
+            padding-left: 15px;
+            margin-bottom: 30px;
+        }
+
+        .step {
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.4s ease;
+            margin: 25px 0;
+            font-size: 24px;
+            line-height: 1.4;
+        }
+
+        .step.visible { opacity: 1; transform: translateX(0); }
+
+        .label {
+            font-weight: bold;
+            color: var(--accent-color);
+            margin-right: 15px;
+        }
+
+        .example-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px dashed #ddd;
+            margin-top: 10px;
+            color: #333;
+        }
+
+        .highlight { color: #e67e22; font-weight: bold; }
+
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        button {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 5px;
+            background: var(--primary-color);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover { background: var(--accent-color); }
+        button:disabled { background: #ccc; }
+
+        .progress { font-weight: bold; color: #666; }
+    </style>
+</head>
+<body>
+
+    <div class="slide-container" id="main-container" onclick="showNextStep()">
+        <div class="slide active">
+            <h2>1. Completed Actions ✅</h2>
+            <div class="step"><span class="label">Use:</span> Indicates the action is finished.</div>
+            <div class="step">
+                <div class="example-box">我吃<span class="highlight">了</span>。 (I ate.)<br>她走<span class="highlight">了</span>。 (She left.)</div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>2. Past Events 🕒</h2>
+            <div class="step"><span class="label">Use:</span> Describes something that happened in the past.</div>
+            <div class="step">
+                <div class="example-box">昨天我看<span class="highlight">了</span>电影。 (I watched a movie yesterday.)</div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>3. Showing a Result 🎯</h2>
+            <div class="step"><span class="label">Use:</span> Emphasizes the successful completion of a goal.</div>
+            <div class="step">
+                <div class="example-box">我找到<span class="highlight">了</span>钥匙。 (I found the key.)<br>她学会<span class="highlight">了</span>中文。 (She learned Chinese.)</div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>4. Change of Situation 🌧️</h2>
+            <div class="step"><span class="label">Use:</span> Something is different now compared to before.</div>
+            <div class="step">
+                <div class="example-box">下雨<span class="highlight">了</span>。 (It's raining now - it wasn't before.)</div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>5. New Information 📢</h2>
+            <div class="step"><span class="label">Use:</span> Announcing a new event or arrival.</div>
+            <div class="step">
+                <div class="example-box">老师来<span class="highlight">了</span>。 (The teacher is here!)<br>公交车到<span class="highlight">了</span>。 (The bus has arrived.)</div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>6. Change of State 😊</h2>
+            <div class="step"><span class="label">Use:</span> New feelings or conditions.</div>
+            <div class="step">
+                <div class="example-box">我累<span class="highlight">了</span>。 (I am tired now.)<br>他不高兴<span class="highlight">了</span>。 (He became unhappy.)</div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>7. Change in Degree 📊</h2>
+            <div class="step"><span class="label">Use:</span> Indicates a shift in quantity or level.</div>
+            <div class="step">
+                <div class="example-box">人多<span class="highlight">了</span>。 (There are more people now.)<br>天气冷<span class="highlight">了</span>。 (It got colder.)</div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>8. Imminent Actions ⏰</h2>
+            <div class="step"><span class="label">Pattern:</span> 快 / 要 ... 了</div>
+            <div class="step">
+                <div class="example-box">要下课<span class="highlight">了</span>。 (Class is about to end.)<br>快考试<span class="highlight">了</span>。 (The exam is coming.)</div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>9. Duration/Amount ⏳</h2>
+            <div class="step"><span class="label">Pattern:</span> Verb + 了 + Time/Amount</div>
+            <div class="step">
+                <div class="example-box">我学<span class="highlight">了</span>两年中文。 (I studied Chinese for 2 years.)</div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>10. Ongoing Actions 🔄</h2>
+            <div class="step"><span class="label">Pattern:</span> Verb + 了 + Time + 了</div>
+            <div class="step"><span class="label">Key:</span> The action is STILL happening now.</div>
+            <div class="step">
+                <div class="example-box">我学<span class="highlight">了</span>三年中文<span class="highlight">了</span>。<br>(I have been studying for 3 years, AND I'm still studying it.)</div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>11. Future Sequence 🚀</h2>
+            <div class="step"><span class="label">Use:</span> Used for the FIRST action in a future sequence.</div>
+            <div class="step"><span class="label">Key:</span> "After doing A, then do B."</div>
+            <div class="step">
+                <div class="example-box">明天吃<span class="highlight">了</span>饭去打球。<br>(Tomorrow, AFTER I eat, I will go play ball.)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="prevBtn" onclick="prevSlide()" disabled>Prev</button>
+        <div class="progress" id="progressText">Slide 1 / 11</div>
+        <button id="nextBtn" onclick="nextSlide()">Next</button>
+    </div>
+
+    <script>
+        let curIdx = 0;
+        const slides = document.querySelectorAll('.slide');
+        const progressText = document.getElementById('progressText');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        function showNextStep() {
+            const activeSlide = slides[curIdx];
+            const hiddenSteps = activeSlide.querySelectorAll('.step:not(.visible)');
+            if (hiddenSteps.length > 0) {
+                hiddenSteps[0].classList.add('visible');
+            }
+        }
+
+        function updateSlide() {
+            slides.forEach((s, i) => {
+                s.classList.toggle('active', i === curIdx);
+                if (i !== curIdx) {
+                    s.querySelectorAll('.step').forEach(st => st.classList.remove('visible'));
+                }
+            });
+            progressText.innerText = `Slide ${curIdx + 1} / ${slides.length}`;
+            prevBtn.disabled = curIdx === 0;
+            nextBtn.disabled = curIdx === slides.length - 1;
+        }
+
+        function nextSlide() { if (curIdx < slides.length - 1) { curIdx++; updateSlide(); } }
+        function prevSlide() { if (curIdx > 0) { curIdx--; updateSlide(); } }
+
+        document.querySelector('.controls').onclick = e => e.stopPropagation();
+    </script>
+</body>
+</html>

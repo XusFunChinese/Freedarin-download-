@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chinese Measure Words Master</title>
+    <style>
+        :root {
+            --primary: #c0392b; /* 中国红 */
+            --secondary: #27ae60;
+            --bg: #fdfaf6;
+            --card-front: #ffffff;
+            --card-back: #fff5f5;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            color: #2c3e50;
+        }
+
+        nav {
+            width: 100%;
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .btn {
+            padding: 8px 14px;
+            border: 1.5px solid #e2e8f0;
+            background: white;
+            color: #64748b;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+        }
+
+        .mode-desc {
+            text-align: center;
+            color: #7f8c8d;
+            margin: 15px 0 25px;
+            font-size: 0.9rem;
+            min-height: 20px;
+        }
+
+        /* --- Flashcard Styles --- */
+        .card-area {
+            perspective: 1000px;
+            width: 340px;
+            height: 460px;
+            position: relative;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .flashcard.flipped { transform: rotateY(180deg); }
+
+        .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .face-front { background: var(--card-front); }
+        .face-back { background: var(--card-back); transform: rotateY(180deg); }
+
+        .mw-char { font-size: 5rem; font-weight: bold; color: var(--primary); margin-bottom: 10px; }
+        .mw-py { font-size: 1.5rem; color: #7f8c8d; margin-bottom: 20px; }
+        .mw-en { font-size: 2rem; font-weight: 700; color: #2c3e50; }
+        .mw-example { font-size: 1.2rem; color: #34495e; margin-top: 20px; line-height: 1.5; padding: 10px; background: #f9f9f9; border-radius: 10px; }
+        .mw-example-en { font-size: 0.9rem; color: #95a5a6; margin-top: 5px; font-style: italic; }
+
+        /* --- Quiz Styles --- */
+        .quiz-panel {
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            text-align: center;
+            display: none;
+            box-sizing: border-box;
+        }
+        .quiz-panel.active { display: block; animation: fadeIn 0.3s; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .opt-btn {
+            padding: 15px;
+            border: 2px solid #f1f5f9;
+            border-radius: 12px;
+            background: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .opt-btn:hover { border-color: var(--primary); background: #fffafa; }
+
+        .input-box {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            text-align: center;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        .feedback { margin-top: 15px; font-weight: bold; height: 24px; }
+        
+        .progress-bar {
+            margin-top: 30px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .tap-hint {
+            margin-top: 15px;
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+<nav id="main-nav"></nav>
+
+<div class="container">
+    <div id="mode-desc" class="mode-desc"></div>
+
+    <div id="card-view" style="display:none; flex-direction:column; align-items:center;">
+        <div class="card-area" onclick="handleCardClick()">
+            <div id="card" class="flashcard">
+                <div id="card-front" class="face face-front"></div>
+                <div id="card-back" class="face face-back"></div>
+            </div>
+        </div>
+        <div id="hint-text" class="tap-hint">Tap to flip</div>
+    </div>
+
+    <div id="choice-view" class="quiz-panel">
+        <div id="choice-q" style="font-size: 1.4rem; font-weight: bold; margin-bottom: 20px;"></div>
+        <div id="choice-options" class="options-grid"></div>
+        <div id="choice-feedback" class="feedback"></div>
+    </div>
+
+    <div id="spell-view" class="quiz-panel">
+        <div id="spell-context" class="mw-example" style="margin-bottom: 20px;"></div>
+        <div id="spell-q" style="font-size: 1.3rem; margin-bottom: 20px; color: var(--primary); font-weight: bold;"></div>
+        <input type="text" id="spell-input" class="input-box" placeholder="Type the Measure Word or Pinyin..." autocomplete="off">
+        <div id="spell-feedback" class="feedback"></div>
+    </div>
+
+    <div id="counter" class="progress-bar"></div>
+</div>
+
+<script>
+    const mwData = [
+        { zh: "个", py: "gè", en: "General measure word", ex: "一个苹果", exEn: "An apple" },
+        { zh: "只", py: "zhī", en: "Animals / One of a pair", ex: "一只小猫", exEn: "A kitten" },
+        { zh: "条", py: "tiáo", en: "Long, thin objects", ex: "一条鱼", exEn: "A fish" },
+        { zh: "本", py: "běn", en: "Books / Bound volumes", ex: "一本书", exEn: "A book" },
+        { zh: "位", py: "wèi", en: "Polite for people", ex: "一位老师", exEn: "A teacher" },
+        { zh: "张", py: "zhāng", en: "Flat objects / Surfaces", ex: "一张纸", exEn: "A piece of paper" },
+        { zh: "把", py: "bǎ", en: "Objects with handles", ex: "一把伞", exEn: "An umbrella" },
+        { zh: "件", py: "jiàn", en: "Clothing / Matters", ex: "一件衣服", exEn: "A piece of clothing" },
+        { zh: "双", py: "shuāng", en: "Pairs", ex: "一双鞋", exEn: "A pair of shoes" },
+        { zh: "瓶", py: "píng", en: "Bottles", ex: "一瓶水", exEn: "A bottle of water" },
+        { zh: "杯", py: "bēi", en: "Cups / Glasses", ex: "一杯咖啡", exEn: "A cup of coffee" },
+        { zh: "台", py: "tái", en: "Machines / Appliances", ex: "一台电脑", exEn: "A computer" },
+        { zh: "辆", py: "liàng", en: "Vehicles", ex: "一辆汽车", exEn: "A car" },
+        { zh: "间", py: "jiān", en: "Rooms", ex: "一间房", exEn: "A room" },
+        { zh: "朵", py: "duǒ", en: "Flowers / Clouds", ex: "一朵花", exEn: "A flower" },
+        { zh: "家", py: "jiā", en: "Families / Businesses", ex: "一家店", exEn: "A shop" },
+        { zh: "座", py: "zuò", en: "Large, fixed structures", ex: "一座大山", exEn: "A large mountain" },
+        { zh: "块", py: "kuài", en: "Pieces / Chunks / Money", ex: "一块蛋糕", exEn: "A piece of cake" },
+        { zh: "口", py: "kǒu", en: "Family members / Bites", ex: "一家五口人", exEn: "A family of five" },
+        { zh: "支", py: "zhī", en: "Stick-like objects / Songs", ex: "一支笔", exEn: "A pen" },
+        { zh: "层", py: "céng", en: "Layers / Floors", ex: "十层楼", exEn: "Ten floors" },
+        { zh: "场", py: "chǎng", en: "Events / Shows", ex: "一场电影", exEn: "A movie" },
+        { zh: "些", py: "xiē", en: "Some / A few", ex: "一些书", exEn: "Some books" },
+        { zh: "次", py: "cì", en: "Times / Occurrences", ex: "第一次", exEn: "The first time" },
+        { zh: "种", py: "zhǒng", en: "Kinds / Types", ex: "这种人", exEn: "This kind of person" }
+    ];
+
+    const modes = [
+        { id: 'learn', name: 'Learning', desc: 'Front: Measure Word + Example. Back: English.' },
+        { id: 'revA', name: 'Recognition', desc: 'Front: Measure Word. Back: Pinyin + Example.' },
+        { id: 'revB', name: 'Recall', desc: 'Front: English meaning. Back: Measure Word.' },
+        { id: 'choice', name: 'Quiz: Choices', desc: 'Select the correct English definition.' },
+        { id: 'spell', name: 'Quiz: Spelling', desc: 'Type the character or pinyin for the context.' }
+    ];
+
+    let currentMode = 'learn';
+    let currentIndex = 0;
+    let isFlipped = false;
+    let isTransitioning = false;
+
+    // Helper: Normalize pinyin
+    function normalizePinyin(str) {
+        return str.normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .toLowerCase()
+                  .replace(/\s/g, "")
+                  .replace(/'/g, "");
+    }
+
+    // Nav
+    const nav = document.getElementById('main-nav');
+    modes.forEach(m => {
+        const b = document.createElement('button');
+        b.className = 'btn';
+        b.innerText = m.name;
+        b.onclick = () => setMode(m.id);
+        b.id = 'btn-' + m.id;
+        nav.appendChild(b);
+    });
+
+    function setMode(modeId) {
+        currentMode = modeId;
+        currentIndex = 0;
+        isFlipped = false;
+        isTransitioning = false;
+        
+        document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-' + modeId).classList.add('active');
+        document.getElementById('mode-desc').innerText = modes.find(m => m.id === modeId).desc;
+
+        document.getElementById('card-view').style.display = 'none';
+        document.getElementById('choice-view').classList.remove('active');
+        document.getElementById('spell-view').classList.remove('active');
+        document.getElementById('card').classList.remove('flipped');
+
+        if(['learn', 'revA', 'revB'].includes(modeId)) {
+            document.getElementById('card-view').style.display = 'flex';
+            updateFlashcardContent();
+        } else if(modeId === 'choice') {
+            document.getElementById('choice-view').classList.add('active');
+            initChoiceQuiz();
+        } else if(modeId === 'spell') {
+            document.getElementById('spell-view').classList.add('active');
+            initSpellQuiz();
+        }
+    }
+
+    function updateFlashcardContent() {
+        const item = mwData[currentIndex];
+        const front = document.getElementById('card-front');
+        const back = document.getElementById('card-back');
+        
+        document.getElementById('counter').innerText = `Progress: ${currentIndex + 1} / ${mwData.length}`;
+        document.getElementById('hint-text').innerText = "Tap to flip";
+
+        if (currentMode === 'learn') {
+            front.innerHTML = `<span class="mw-char">${item.zh}</span><span class="mw-py">${item.py}</span><div class="mw-example">${item.ex}<br><small>${item.exEn}</small></div>`;
+            back.innerHTML = `<span class="mw-en">${item.en}</span>`;
+        } else if (currentMode === 'revA') {
+            front.innerHTML = `<span class="mw-char">${item.zh}</span>`;
+            back.innerHTML = `<span class="mw-py">${item.py}</span><div class="mw-example">${item.ex}</div><span class="mw-en">${item.en}</span>`;
+        } else if (currentMode === 'revB') {
+            front.innerHTML = `<span class="mw-en">${item.en}</span>`;
+            back.innerHTML = `<span class="mw-char" style="font-size:6rem">${item.zh}</span><span class="mw-py">${item.py}</span><div class="mw-example">${item.ex}</div>`;
+        }
+    }
+
+    function handleCardClick() {
+        if (isTransitioning) return;
+        const card = document.getElementById('card');
+        if (!isFlipped) {
+            card.classList.add('flipped');
+            isFlipped = true;
+            document.getElementById('hint-text').innerText = "Tap for next";
+        } else {
+            isTransitioning = true;
+            card.classList.remove('flipped');
+            setTimeout(() => {
+                currentIndex = (currentIndex + 1) % mwData.length;
+                updateFlashcardContent();
+                isFlipped = false;
+                isTransitioning = false;
+            }, 250);
+        }
+    }
+
+    function initChoiceQuiz() {
+        const item = mwData[currentIndex];
+        document.getElementById('choice-feedback').innerText = '';
+        document.getElementById('choice-q').innerText = `Measure Word: "${item.zh}" (${item.py})`;
+        document.getElementById('counter').innerText = `Progress: ${currentIndex + 1} / ${mwData.length}`;
+
+        let opts = [item.en];
+        while(opts.length < 4) {
+            let r = mwData[Math.floor(Math.random()*mwData.length)].en;
+            if(!opts.includes(r)) opts.push(r);
+        }
+        opts.sort(() => Math.random() - 0.5);
+
+        document.getElementById('choice-options').innerHTML = opts.map(o => 
+            `<button class="opt-btn" onclick="checkChoice('${o}')">${o}</button>`
+        ).join('');
+    }
+
+    function checkChoice(ans) {
+        if (isTransitioning) return;
+        const correct = mwData[currentIndex].en;
+        const fb = document.getElementById('choice-feedback');
+        if(ans === correct) {
+            isTransitioning = true;
+            fb.innerText = "✅ Correct!";
+            fb.style.color = "var(--secondary)";
+            setTimeout(() => {
+                currentIndex = (currentIndex + 1) % mwData.length;
+                initChoiceQuiz();
+                isTransitioning = false;
+            }, 800);
+        } else {
+            fb.innerText = "❌ Incorrect";
+            fb.style.color = "#e74c3c";
+        }
+    }
+
+    function initSpellQuiz() {
+        const item = mwData[currentIndex];
+        document.getElementById('spell-feedback').innerText = '';
+        document.getElementById('spell-input').value = '';
+        document.getElementById('spell-context').innerHTML = `Example: ${item.ex.replace(item.zh, "____")} (${item.exEn})`;
+        document.getElementById('spell-q').innerText = `Meaning: ${item.en}`;
+        document.getElementById('counter').innerText = `Progress: ${currentIndex + 1} / ${mwData.length}`;
+        document.getElementById('spell-input').focus();
+    }
+
+    document.getElementById('spell-input').onkeydown = (e) => {
+        if(e.key === 'Enter') {
+            if (isTransitioning) return;
+            const inputVal = e.target.value.trim().toLowerCase().replace(/\s/g, "");
+            const item = mwData[currentIndex];
+            const fb = document.getElementById('spell-feedback');
+            if(inputVal === item.zh || inputVal === normalizePinyin(item.py)) {
+                isTransitioning = true;
+                fb.innerText = "✅ Excellent!";
+                fb.style.color = "var(--secondary)";
+                setTimeout(() => {
+                    currentIndex = (currentIndex + 1) % mwData.length;
+                    initSpellQuiz();
+                    isTransitioning = false;
+                }, 800);
+            } else {
+                fb.innerText = `Try again! (Pinyin: ${item.py})`;
+                fb.style.color = "#f39c12";
+            }
+        }
+    };
+
+    setMode('learn');
+</script>
+
+</body>
+</html>
