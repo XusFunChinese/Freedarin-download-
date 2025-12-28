@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生词模式 - 40种交通工具</title>
+    <style>
+        :root {
+            --primary-blue: #2980b9;
+            --dark-gray: #2c3e50;
+            --accent-orange: #f39c12;
+            --bg-light: #ffffff;
+            --text-black: #1a1a1a;
+            --correct-green: #2ecc71;
+            --wrong-red: #e74c3c;
+            --pinyin-gray: #999;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif, 'Microsoft YaHei';
+            background-color: var(--bg-light);
+            margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #app {
+            width: 100vw; height: 100vh; max-width: 600px; background: white; 
+            padding: 1rem; box-sizing: border-box; display: flex; flex-direction: column;
+        }
+
+        .nav-grid { 
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; 
+            margin-bottom: 10px; flex-shrink: 0; z-index: 100;
+        }
+        .nav-grid button { 
+            font-size: 0.75rem; padding: 10px 2px; background: #f5f5f5; 
+            border-radius: 8px; border: none; color: #666; cursor: pointer; font-weight: bold; 
+        }
+        .nav-grid button.active { background: var(--dark-gray); color: white; }
+
+        .card-scene { flex-grow: 1; perspective: 1000px; position: relative; }
+        .card { width: 100%; height: 100%; position: relative; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s; transform-style: preserve-3d; cursor: pointer; }
+        .card.is-flipped { transform: rotateY(180deg); }
+        .card.is-switching { opacity: 0; }
+        
+        .card-face { 
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden; 
+            display: flex; flex-direction: column; align-items: center; 
+            background: white; text-align: center;
+            padding: 18vh 20px 20px 20px;
+            box-sizing: border-box;
+        }
+        
+        .card-back { transform: rotateY(180deg); background: #fafafa; border-radius: 24px; padding-top: 10vh; }
+
+        .emoji-huge { font-size: 7.5rem; margin-bottom: 10px; }
+        .word-huge { font-size: 5rem; font-weight: 900; color: var(--text-black); line-height: 1; }
+        .word-en-huge { font-size: 3.5rem; font-weight: 800; color: var(--primary-blue); line-height: 1.1; margin-top: 5vh; }
+        
+        .word-ruby { font-size: 3.5rem; font-weight: 900; color: var(--text-black); margin: 0; line-height: 1.2;}
+        .ex-ruby { font-size: 1.4rem; font-weight: bold; color: var(--text-black); line-height: 2.2; margin-bottom: 15px; }
+        rt { font-size: 0.85rem; color: var(--pinyin-gray); font-weight: normal; transform: translateY(-2px); }
+        
+        .back-eng-title { font-size: 2rem; font-weight: bold; color: var(--accent-orange); margin: 10px 0 30px 0; }
+        .ex-container { width: 100%; padding-top: 25px; border-top: 1px solid #eee; margin-top: auto; padding-bottom: 5vh;}
+        .ex-en { font-size: 1.1rem; color: #777; font-style: italic; line-height: 1.2; padding: 0 10px; }
+
+        #progress-tag { position: absolute; top: -5px; left: 0; font-size: 0.85rem; color: #eee; font-weight: bold; }
+
+        .opt-btn { display: block; width: 100%; padding: 16px; margin: 8px 0; border: 1px solid #eee; background: white; border-radius: 12px; font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .opt-btn.correct { background-color: var(--correct-green) !important; color: white; border-color: var(--correct-green); }
+        .opt-btn.wrong { background-color: var(--wrong-red) !important; color: white; border-color: var(--wrong-red); animation: shake 0.4s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+        #summary-container { flex-grow: 1; overflow-y: auto; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #f9f9f9; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="nav-grid" id="nav-btns">
+        <button onclick="startMode('learn')">LEARN</button>
+        <button onclick="startMode('card-cn')">CARD(CN)</button>
+        <button onclick="startMode('card-en')">CARD(EN)</button>
+        <button onclick="startMode('quiz')">QUIZ</button>
+        <button onclick="startMode('timed')">RUSH</button>
+        <button onclick="startMode('summary')">LIST</button>
+    </div>
+
+    <div id="card-container" class="mode-view">
+        <div id="progress-tag">01/40</div>
+        <div class="card-scene">
+            <div class="card" id="display-card" onclick="handleCardClick()">
+                <div class="card-face card-front" id="card-f"></div>
+                <div class="card-face card-back" id="card-b"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="summary-container" class="mode-view hidden"><div id="summary-list"></div></div>
+
+    <div id="quiz-container" class="mode-view hidden" style="flex-grow:1; padding:20px; text-align:center;">
+        <div style="display:flex; justify-content:space-between; font-weight:bold; color:#ddd; margin-bottom:10px;">
+            <span id="quiz-score-tag">SCORE: 0</span>
+            <span id="quiz-timer-tag"></span>
+        </div>
+        <div id="quiz-q" style="font-size:2.5rem; font-weight:bold; margin: 20px 0; color:var(--primary-blue);"></div>
+        <div id="quiz-opts"></div>
+    </div>
+</div>
+
+<script>
+    const vocabulary = [
+        { word: "飞机", pinyin: "fēi jī", eng: "Airplane", emoji: "✈️", exZh: "我坐飞机去北京。", exPy: "wǒ zuò fēi jī qù běi jīng", exEn: "I take an airplane to Beijing." },
+        { word: "直升机", pinyin: "zhí shēng jī", eng: "Helicopter", emoji: "🚁", exZh: "直升机在空中盘旋。", exPy: "zhí shēng jī zài kōng zhōng pán xuán", exEn: "The helicopter is circling in the air." },
+        { word: "自行车", pinyin: "zì xíng chē", eng: "Bicycle", emoji: "🚲", exZh: "他每天骑自行车上班。", exPy: "tā měi tiān qí zì xíng chē shàng bān", exEn: "He rides a bicycle to work every day." },
+        { word: "公共汽车", pinyin: "gōng gòng qì chē", eng: "Bus", emoji: "🚌", exZh: "我们要等公共汽车。", exPy: "wǒ men yào děng gōng gòng qì chē", exEn: "We need to wait for the bus." },
+        { word: "出租车", pinyin: "chū zū chē", eng: "Taxi", emoji: "🚕", exZh: "下雨时很难叫到出租车。", exPy: "xià yǔ shí hěn nán jiào dào chū zū chē", exEn: "It is hard to catch a taxi when it rains." },
+        { word: "火车", pinyin: "huǒ chē", eng: "Train", emoji: "🚂", exZh: "火车的速度非常快。", exPy: "huǒ chē de sù dù fēi cháng kuài", exEn: "The train's speed is very fast." },
+        { word: "地铁", pinyin: "dì tiě", eng: "Subway", emoji: "🚇", exZh: "坐地铁不会堵车。", exPy: "zuò dì tiě bú huì dǔ chē", exEn: "Taking the subway avoids traffic jams." },
+        { word: "摩托车", pinyin: "mó tuō chē", eng: "Motorcycle", emoji: "🏍️", exZh: "骑摩托车要戴头盔。", exPy: "qí mó tuō chē yào dài tóu kuī", exEn: "You must wear a helmet when riding a motorcycle." },
+        { word: "轮船", pinyin: "lún chuán", eng: "Ship", emoji: "🚢", exZh: "轮船在大海上航行。", exPy: "lún chuán zài dà hǎi shàng háng xíng", exEn: "The ship is sailing on the sea." },
+        { word: "帆船", pinyin: "fān chuán", eng: "Sailboat", emoji: "⛵", exZh: "帆船靠风力前进。", exPy: "fān chuán kào fēng lì qián jìn", exEn: "Sailboats move by wind power." },
+        { word: "救护车", pinyin: "jiù hù chē", eng: "Ambulance", emoji: "🚑", exZh: "请给救护车让路。", exPy: "qǐng gěi jiù hù chē ràng lù", exEn: "Please make way for the ambulance." },
+        { word: "警车", pinyin: "jǐng chē", eng: "Police Car", emoji: "🚓", exZh: "警车正在执行任务。", exPy: "jǐng chē zhèng zài zhí xíng rèn wu", exEn: "The police car is on a mission." },
+        { word: "消防车", pinyin: "xiāo fáng chē", eng: "Fire Engine", emoji: "🚒", exZh: "消防车赶往火灾现场。", exPy: "xiāo fáng chē gǎn wǎng huǒ zāi xiàn chǎng", exEn: "The fire engine is rushing to the fire scene." },
+        { word: "卡车", pinyin: "kǎ chē", eng: "Truck", emoji: "🚛", exZh: "卡车运载着很多货物。", exPy: "kǎ chē yùn zài zhe hěn duō huò wù", exEn: "The truck is carrying a lot of goods." },
+        { word: "三轮车", pinyin: "sān lún chē", eng: "Tricycle", emoji: "🛺", exZh: "老爷爷骑着三轮车。", exPy: "lǎo yé ye qí zhe sān lún chē", exEn: "The grandfather is riding a tricycle." },
+        { word: "电动车", pinyin: "diàn dòng chē", eng: "Electric Scooter", emoji: "🛵", exZh: "电动车在城市很方便。", exPy: "diàn dòng chē zài chéng shì hěn fāng biàn", exEn: "Electric scooters are convenient in cities." },
+        { word: "热气球", pinyin: "rè qì qiú", eng: "Hot Air Balloon", emoji: "🎈", exZh: "热气球缓缓升空。", exPy: "rè qì qiú huǎn huǎn shēng kōng", exEn: "The hot air balloon rose slowly." },
+        { word: "火箭", pinyin: "huǒ jiàn", eng: "Rocket", emoji: "🚀", exZh: "火箭把卫星送入轨道。", exPy: "huǒ jiàn bǎ wèi xīng sòng rù guǐ dào", exEn: "The rocket sent the satellite into orbit." },
+        { word: "拖拉机", pinyin: "tuō lā jī", eng: "Tractor", emoji: "🚜", exZh: "农民用拖拉机耕地。", exPy: "nóng mín yòng tuō lā jī gēng dì", exEn: "Farmers use tractors to plow the fields." },
+        { word: "潜水艇", pinyin: "qián shuǐ tǐng", eng: "Submarine", emoji: "🚤", exZh: "潜水艇在水下潜行。", exPy: "qián shuǐ tǐng zài shuǐ xià qián xíng", exEn: "The submarine is cruising underwater." },
+        { word: "滑板", pinyin: "huá bǎn", eng: "Skateboard", emoji: "🛹", exZh: "他在公园玩滑板。", exPy: "tā zài gōng yuán wán huá bǎn", exEn: "He is playing with a skateboard in the park." },
+        { word: "溜冰鞋", pinyin: "liū bīng xié", eng: "Roller Skates", emoji: "🛼", exZh: "这对溜冰鞋是蓝色的。", exPy: "zhè duì liū bīng xié shì lán sè de", exEn: "This pair of roller skates is blue." },
+        { word: "皮划艇", pinyin: "pí huá tǐng", eng: "Kayak", emoji: "🛶", exZh: "我们在河里划皮划艇。", exPy: "wǒ men zài hé lǐ huá pí huá tǐng", exEn: "We are paddling a kayak in the river." },
+        { word: "缆车", pinyin: "lǎn chē", eng: "Cable Car", emoji: "🚠", exZh: "我们坐缆车上山。", exPy: "wǒ men zuò lǎn chē shàng shān", exEn: "We took the cable car up the mountain." },
+        { word: "救生艇", pinyin: "jiù shēng tǐng", eng: "Lifeboat", emoji: "🚣", exZh: "船上有足够的救生艇。", exPy: "chuán shàng yǒu zú gòu de jiù shēng tǐng", exEn: "There are enough lifeboats on the ship." },
+        { word: "大巴", pinyin: "dà bā", eng: "Coach", emoji: "🚍", exZh: "长途大巴非常舒适。", exPy: "cháng tú dà bā fēi cháng shū shì", exEn: "The long-distance coach is very comfortable." },
+        { word: "吉普车", pinyin: "jí pǔ chē", eng: "Jeep", emoji: "🚙", exZh: "吉普车适合越野路段。", exPy: "jí pǔ chē shì hé yuè yě lù duàn", exEn: "Jeeps are suitable for off-road sections." },
+        { word: "救火车", pinyin: "jiù huǒ chē", eng: "Fire Truck", emoji: "🚒", exZh: "救火车正在警报鸣响。", exPy: "jiù huǒ chē zhèng zài jǐng bào míng xiǎng", exEn: "The fire truck's siren is sounding." },
+        { word: "坦克", pinyin: "tǎn kè", eng: "Tank", emoji: "🛡️", exZh: "坦克的装甲很厚。", exPy: "tǎn kè de zhuāng jiǎ hěn hòu", exEn: "The tank's armor is very thick." },
+        { word: "快艇", pinyin: "kuài tǐng", eng: "Speedboat", emoji: "🚤", exZh: "快艇在湖面上飞驰。", exPy: "kuài tǐng zài hú miàn shàng fēi chí", exEn: "The speedboat is speeding on the lake." },
+        { word: "校车", pinyin: "xiào chē", eng: "School Bus", emoji: "🚌", exZh: "校车接孩子们上学。", exPy: "xiào chē jiē hái zi men shàng xué", exEn: "The school bus picks up children for school." },
+        { word: "挖掘机", pinyin: "wā jué jī", eng: "Excavator", emoji: "🏗️", exZh: "挖掘机在工地上工作。", exPy: "wā jué jī zài gōng dì shàng gōng zuò", exEn: "The excavator is working on the construction site." },
+        { word: "直排轮", pinyin: "zhí pái lún", eng: "In-line Skates", emoji: "⛸️", exZh: "他穿上直排轮飞快地滑。", exPy: "tā chuān shàng zhí pái lún fēi kuài de huá", exEn: "He put on in-line skates and skated fast." },
+        { word: "单轮车", pinyin: "dān lún chē", eng: "Unicycle", emoji: "🎪", exZh: "小丑在表演单轮车。", exPy: "xiǎo chǒu zài biǎo yǎn dān lún chē", exEn: "The clown is performing on a unicycle." },
+        { word: "滑翔伞", pinyin: "huá xiáng sǎn", eng: "Paraglider", emoji: "🪂", exZh: "他喜欢玩滑翔伞运动。", exPy: "tā xǐ huān wán huá xiáng sǎn yùn dòng", exEn: "He likes to do paragliding." },
+        { word: "垃圾车", pinyin: "lā jī chē", eng: "Garbage Truck", emoji: "🗑️", exZh: "垃圾车每天早上来收垃圾。", exPy: "lā jī chē měi tiān zǎo shang lái shōu lā jī", exEn: "The garbage truck comes to collect trash every morning." },
+        { word: "运钞车", pinyin: "yùn chāo chē", eng: "Armored Van", emoji: "💰", exZh: "运钞车停在银行门口。", exPy: "yùn chāo chē tíng zài yín háng mén kǒu", exEn: "The armored van stopped at the bank entrance." },
+        { word: "手推车", pinyin: "shǒu tuī chē", eng: "Wheelbarrow", emoji: "🛒", exZh: "超市里有很多手推车。", exPy: "chāo shì lǐ yǒu hěn duō shǒu tuī chē", exEn: "There are many shopping carts in the supermarket." },
+        { word: "宇宙飞船", pinyin: "yǔ zhòu fēi chuán", eng: "Spaceship", emoji: "🛸", exZh: "宇宙飞船飞向火星。", exPy: "yǔ zhòu fēi chuán fēi xiàng huǒ xīng", exEn: "The spaceship is flying towards Mars." },
+        { word: "平衡车", pinyin: "píng héng chē", eng: "Hoverboard", emoji: "🛹", exZh: "平衡车非常受年轻人欢迎。", exPy: "píng héng chē fēi cháng shòu nián qīng rén huān yíng", exEn: "Hoverboards are very popular among young people." }
+    ];
+
+    let currentIdx = 0, currentMode = 'learn', score = 0, rushTimer, timeLeft = 15;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playAudioFeedback(type) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+        if (type === 'correct') {
+            osc.frequency.setValueAtTime(523, now); osc.frequency.exponentialRampToValueAtTime(1046, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.start(); osc.stop(now + 0.3);
+        } else {
+            osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now + 0.2);
+            gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+            osc.start(); osc.stop(now + 0.2);
+        }
+    }
+
+    function speak(text) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = /[\u4e00-\u9fa5]/.test(text) ? 'zh-CN' : 'en-US';
+        window.speechSynthesis.speak(msg);
+    }
+
+    function generateRubySentence(zh, py) {
+        const chars = zh.split('');
+        const pinyins = py.split(' ');
+        let html = '';
+        let pyIdx = 0;
+        chars.forEach((char) => {
+            if (/[，。！？、？ ]/.test(char)) {
+                html += char;
+            } else {
+                html += `<ruby>${char}<rt>${pinyins[pyIdx] || ''}</rt></ruby>`;
+                pyIdx++;
+            }
+        });
+        return html;
+    }
+
+    function startMode(m) {
+        currentMode = m; score = 0; clearInterval(rushTimer);
+        document.querySelectorAll('.mode-view').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.nav-grid button').forEach(b => b.classList.remove('active'));
+        if(event) event.target.classList.add('active');
+
+        if(m === 'summary') {
+            document.getElementById('summary-container').classList.remove('hidden');
+            renderSummary();
+        } else if(m === 'quiz' || m === 'timed') {
+            document.getElementById('quiz-container').classList.remove('hidden');
+            document.getElementById('quiz-score-tag').innerText = "SCORE: 0";
+            if(m === 'timed') {
+                timeLeft = 15;
+                rushTimer = setInterval(() => {
+                    timeLeft -= 0.1;
+                    document.getElementById('quiz-timer-tag').innerText = Math.ceil(timeLeft) + "s";
+                    if(timeLeft <= 0) { clearInterval(rushTimer); alert("时间到！得分: " + score); startMode('learn'); }
+                }, 100);
+            } else { document.getElementById('quiz-timer-tag').innerText = ""; }
+            nextQ();
+        } else {
+            document.getElementById('card-container').classList.remove('hidden');
+            renderDisplayCard(true);
+        }
+    }
+
+    function renderDisplayCard(immediate = false) {
+        const h = vocabulary[currentIdx];
+        const card = document.getElementById('display-card');
+        if(immediate) { updateCardContent(h); return; }
+        card.classList.add('is-switching');
+        setTimeout(() => { updateCardContent(h); card.classList.remove('is-switching'); }, 200);
+    }
+
+    function updateCardContent(h) {
+        let frontHTML = '', speakText = h.word;
+        if(currentMode === 'learn') {
+            frontHTML = `<div class="emoji-huge">${h.emoji}</div><ruby class="word-ruby">${h.word}<rt>${h.pinyin}</rt></ruby>`;
+        } else if(currentMode === 'card-cn') {
+            frontHTML = `<div class="word-huge" style="margin-top:10vh">${h.word}</div>`;
+        } else if(currentMode === 'card-en') {
+            frontHTML = `<div class="word-en-huge">${h.eng}</div>`; speakText = h.eng;
+        }
+        
+        document.getElementById('card-f').innerHTML = frontHTML;
+        const rubySentence = generateRubySentence(h.exZh, h.exPy);
+
+        document.getElementById('card-b').innerHTML = `
+            <div class="emoji-huge" style="font-size:3.5rem; margin-bottom:0;">${h.emoji}</div>
+            <ruby class="word-ruby" style="font-size:3rem;">${h.word}<rt>${h.pinyin}</rt></ruby>
+            <div class="back-eng-title">${h.eng}</div>
+            <div class="ex-container">
+                <div class="ex-ruby">${rubySentence}</div>
+                <div class="ex-en">${h.exEn}</div>
+            </div>`;
+            
+        document.getElementById('progress-tag').innerText = (currentIdx + 1).toString().padStart(2, '0') + "/" + vocabulary.length;
+        speak(speakText);
+    }
+
+    function handleCardClick() {
+        const card = document.getElementById('display-card');
+        if(!card.classList.contains('is-flipped')) {
+            card.classList.add('is-flipped'); speak(vocabulary[currentIdx].exZh);
+        } else {
+            card.classList.remove('is-flipped'); currentIdx = (currentIdx + 1) % vocabulary.length;
+            setTimeout(() => { renderDisplayCard(); }, 300); 
+        }
+    }
+
+    function renderSummary() {
+        document.getElementById('summary-list').innerHTML = vocabulary.map(h => `
+            <div class="list-item" onclick="speak('${h.word}')">
+                <div style="text-align:left"><span style="font-size:1.4rem; font-weight:bold;">${h.emoji} ${h.word}</span></div>
+                <div style="color:var(--primary-blue); font-size:1rem; font-weight:600;">${h.eng}</div>
+            </div>`).join('');
+    }
+
+    function nextQ() {
+        const h = vocabulary[Math.floor(Math.random() * vocabulary.length)];
+        const isCN = Math.random() > 0.5;
+        document.getElementById('quiz-q').innerText = isCN ? h.word : h.eng;
+        const correct = isCN ? h.eng : h.word;
+        let opts = [correct];
+        while(opts.length < 4) {
+            let f = vocabulary[Math.floor(Math.random() * vocabulary.length)][isCN ? 'eng' : 'word'];
+            if(!opts.includes(f)) opts.push(f);
+        }
+        opts.sort(() => Math.random() - 0.5);
+        document.getElementById('quiz-opts').innerHTML = opts.map(o => `
+            <button class="opt-btn" onclick="checkQuizAnswer(this, '${o}', '${correct}')">${o}</button>`).join('');
+    }
+
+    function checkQuizAnswer(btn, selected, correct) {
+        const allBtns = document.querySelectorAll('.opt-btn');
+        allBtns.forEach(b => b.disabled = true);
+        if(selected === correct) {
+            playAudioFeedback('correct'); btn.classList.add('correct');
+            score += 10; speak(correct); setTimeout(nextQ, 800);
+        } else {
+            playAudioFeedback('wrong'); btn.classList.add('wrong');
+            allBtns.forEach(b => { if(b.innerText === correct) b.classList.add('correct'); });
+            score = Math.max(0, score - 5); if(currentMode === 'timed') timeLeft -= 1.5;
+            setTimeout(nextQ, 1200);
+        }
+        document.getElementById('quiz-score-tag').innerText = "SCORE: " + score;
+    }
+
+    document.querySelector('.nav-grid button').click();
+</script>
+</body>
+</html>
